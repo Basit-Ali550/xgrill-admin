@@ -1,33 +1,24 @@
 "use client";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
-import { useAuth } from "@/context/AuthContext";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent, CardFooter } from "@/components/ui/card";
+import { useState, useTransition } from "react";
+import { loginAction } from "@/app/actions/auth";
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
-  const { login } = useAuth();
-  const router = useRouter();
+  const [isPending, startTransition] = useTransition();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
-
-    try {
-      await login(email, password);
-      router.push("/dashboard");
-    } catch (err) {
-      setError(err.message);
-    } finally {
-      setLoading(false);
-    }
+    
+    // Create FormData object from the form
+    const formData = new FormData(e.currentTarget);
+    
+    startTransition(async () => {
+      const result = await loginAction(null, formData);
+      if (result?.error) {
+        setError(result.error);
+      }
+    });
   };
 
   return (
@@ -87,9 +78,8 @@ export default function LoginPage() {
               <label style={{ display: 'block', color: '#d1d5db', fontSize: '14px', marginBottom: '8px' }}>Email</label>
               <input
                 type="email"
+                name="email"
                 placeholder="admin@grillx.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
                 required
                 style={{
                   width: '100%',
@@ -109,9 +99,8 @@ export default function LoginPage() {
               <label style={{ display: 'block', color: '#d1d5db', fontSize: '14px', marginBottom: '8px' }}>Password</label>
               <input
                 type="password"
+                name="password"
                 placeholder="••••••••"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
                 required
                 style={{
                   width: '100%',
@@ -129,7 +118,7 @@ export default function LoginPage() {
 
             <button 
               type="submit" 
-              disabled={loading}
+              disabled={isPending}
               style={{
                 width: '100%',
                 padding: '14px',
@@ -139,15 +128,15 @@ export default function LoginPage() {
                 color: 'white',
                 fontSize: '16px',
                 fontWeight: '600',
-                cursor: loading ? 'not-allowed' : 'pointer',
-                opacity: loading ? 0.7 : 1,
+                cursor: isPending ? 'not-allowed' : 'pointer',
+                opacity: isPending ? 0.7 : 1,
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '8px'
               }}
             >
-              {loading ? (
+              {isPending ? (
                 <>
                   <span style={{ 
                     width: '16px', 
