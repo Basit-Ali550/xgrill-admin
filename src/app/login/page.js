@@ -1,10 +1,13 @@
 "use client";
 import { useState, useTransition } from "react";
 import { loginAction } from "@/app/actions/auth";
+import toast from "react-hot-toast";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
   const [error, setError] = useState("");
   const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -15,8 +18,21 @@ export default function LoginPage() {
     
     startTransition(async () => {
       const result = await loginAction(null, formData);
+      
       if (result?.error) {
+        toast.error(result.error);
         setError(result.error);
+      } else if (result?.success) {
+        // Manually update localStorage for AuthContext compatibility
+        localStorage.setItem("token", result.data.token);
+        localStorage.setItem("user", JSON.stringify(result.data.user));
+        
+        toast.success("Login successful! Redirecting...");
+        
+        // Use hard redirect to force full page reload so AuthContext re-reads localStorage
+        setTimeout(() => {
+            window.location.href = "/dashboard";
+        }, 500);
       }
     });
   };

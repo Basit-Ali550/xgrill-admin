@@ -1,6 +1,7 @@
 import "./globals.css";
 import { AuthProvider } from "@/context/AuthContext";
 import { SocketProvider } from "@/context/SocketContext";
+import { Toaster } from "react-hot-toast";
 
 export const metadata = {
   title: "Grill-X Admin",
@@ -35,6 +36,7 @@ export default function RootLayout({ children }) {
         <AuthProvider>
           <SocketProvider>
             {children}
+            <Toaster position="top-center" reverseOrder={false} />
           </SocketProvider>
         </AuthProvider>
       </body>

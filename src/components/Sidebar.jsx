@@ -6,6 +6,7 @@ import { useSocket } from "@/context/SocketContext";
 const navItems = [
   { href: "/dashboard", label: "Dashboard", icon: "📊" },
   { href: "/dashboard/orders", label: "Orders", icon: "📋" },
+  { href: "/dashboard/ingredients", label: "Ingredients", icon: "🥦" },
   { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
   { href: "/dashboard/products", label: "Products", icon: "🍔" },
 ];

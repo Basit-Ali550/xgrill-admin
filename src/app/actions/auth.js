@@ -49,16 +49,13 @@ export async function loginAction(prevState, formData) {
     // Client side can fetch "/me" if needed.
     
     // However, to keep AuthContext happy for now without breaking everything:
-    // We'll let the client handling the success redirect also set the localStorage if it wants to maintain compatibility,
-    // OR we fully commit to cookies.
-    // Since the prompt says "max server side action", we should rely on cookies.
+    // We'll let the client handling the success redirect also set the localStorage
+    return { success: true, data: data.data };
     
   } catch (error) {
     console.error("Login error:", error);
     return { error: "Something went wrong. Please try again." };
   }
-  
-  redirect("/dashboard");
 }
 
 export async function logoutAction() {

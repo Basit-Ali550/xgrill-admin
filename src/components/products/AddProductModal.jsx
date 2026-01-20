@@ -1,5 +1,5 @@
 "use client";
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { Formik, Form, FieldArray } from "formik";
 import { Button } from "@/components/ui/button";
 import { Modal, ModalFooter } from "@/components/ui/modal";
@@ -11,14 +11,30 @@ import {
 import { productSchema } from "@/lib/validations";
 import { Plus, X, Image as ImageIcon, Flame } from "lucide-react";
 import { createProductAction } from "@/app/actions/products";
+import { getIngredientsAction } from "@/app/actions/ingredients";
 
 export default function AddProductModal({ isOpen, onClose, onAdd }) {
+  const [availableIngredients, setAvailableIngredients] = useState([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      const fetchIngredients = async () => {
+        const res = await getIngredientsAction();
+        if (res?.success) {
+          setAvailableIngredients(res.data);
+        }
+      };
+      fetchIngredients();
+    }
+  }, [isOpen]);
+
   const initialValues = {
     name: "",
     description: "",
     price: "",
     category: "Burgers",
-    ingredients: [""],
+    ingredients: [""], // Keep for legacy or remove if fully migrated
+    recipeData: [], // New recipe field
     image: "",
     initialStock: "100",
     lowStockThreshold: "10",
@@ -30,9 +46,15 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         (ing) => ing.trim() !== "",
       );
 
+      // Filter out incomplete recipe items
+      const cleanedRecipeData = values.recipeData.filter(
+        (item) => item.ingredientId && item.quantityRequired,
+      );
+
       const productData = {
         ...values,
         ingredients: cleanedIngredients,
+        recipeData: cleanedRecipeData,
         price: parseFloat(values.price),
         initialStock: parseInt(values.initialStock),
         lowStockThreshold: parseInt(values.lowStockThreshold),
@@ -48,7 +70,6 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         onClose();
       } else {
         console.error("Failed to add product:", result.error);
-        // Optionally show visual error to user here using toast or alert
         alert(result.error);
       }
     } catch (error) {
@@ -70,7 +91,7 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         validationSchema={productSchema}
         onSubmit={handleSubmit}
       >
-        {({ values, isSubmitting }) => (
+        {({ values, isSubmitting, handleChange }) => (
           <Form className="flex flex-col gap-8">
             <div className="grid grid-cols-12 gap-8">
               {/* Left Column: Core Details */}
@@ -116,45 +137,86 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                   />
                 </div>
 
-                {/* Ingredients Section */}
+                {/* Recipe Section */}
                 <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-800">
                   <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <span className="text-green-500">🥦</span> Ingredients
+                      <span className="text-green-500">🥦</span> Recipe &
+                      Ingredients
                     </h3>
                   </div>
 
-                  <FieldArray name="ingredients">
+                  <FieldArray name="recipeData">
                     {({ push, remove }) => (
                       <div className="space-y-3">
-                        <div className="grid grid-cols-2 gap-3">
-                          {values.ingredients.map((_, index) => (
-                            <div key={index} className="flex gap-2 group">
-                              <FormInput
-                                name={`ingredients[${index}]`}
-                                placeholder={`Ingredient ${index + 1}`}
-                                className="flex-1"
-                              />
-                              <Button
-                                type="button"
-                                variant="ghost"
-                                onClick={() => remove(index)}
-                                className="text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-colors"
-                                disabled={values.ingredients.length === 1}
-                              >
-                                <X size={16} />
-                              </Button>
-                            </div>
-                          ))}
-                        </div>
+                        {availableIngredients.length === 0 ? (
+                          <p className="text-sm text-gray-500">
+                            No ingredients available. Add some in the
+                            Ingredients page first.
+                          </p>
+                        ) : (
+                          <div className="space-y-3">
+                            {values.recipeData &&
+                              values.recipeData.map((item, index) => (
+                                <div
+                                  key={index}
+                                  className="grid grid-cols-12 gap-2 group items-end pb-2 border-b border-gray-800 last:border-0"
+                                >
+                                  <div className="col-span-6">
+                                    <label className="text-xs text-gray-500 mb-1 block">
+                                      Ingredient
+                                    </label>
+                                    <select
+                                      name={`recipeData[${index}].ingredientId`}
+                                      value={item.ingredientId}
+                                      onChange={handleChange}
+                                      className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                    >
+                                      <option value="">
+                                        Select Ingredient
+                                      </option>
+                                      {availableIngredients.map((ing) => (
+                                        <option key={ing.id} value={ing.id}>
+                                          {ing.name} ({ing.unit})
+                                        </option>
+                                      ))}
+                                    </select>
+                                  </div>
+                                  <div className="col-span-4">
+                                    <FormInput
+                                      label="Qty"
+                                      name={`recipeData[${index}].quantityRequired`}
+                                      placeholder="0"
+                                      type="number"
+                                      min="0"
+                                      className="m-0"
+                                    />
+                                  </div>
+                                  <div className="col-span-2 flex justify-end pb-1">
+                                    <Button
+                                      type="button"
+                                      variant="ghost"
+                                      onClick={() => remove(index)}
+                                      className="text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-colors h-10 w-10 p-0"
+                                    >
+                                      <X size={16} />
+                                    </Button>
+                                  </div>
+                                </div>
+                              ))}
+                          </div>
+                        )}
                         <Button
                           type="button"
                           variant="outline"
-                          onClick={() => push("")}
+                          onClick={() =>
+                            push({ ingredientId: "", quantityRequired: "" })
+                          }
                           className="w-full border-dashed border-gray-600 hover:border-orange-500 hover:text-orange-500"
+                          disabled={availableIngredients.length === 0}
                         >
-                          <Plus size={16} className="mr-2" /> Add Another
-                          Ingredient
+                          <Plus size={16} className="mr-2" /> Add Ingredient to
+                          Recipe
                         </Button>
                       </div>
                     )}
