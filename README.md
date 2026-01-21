@@ -64,6 +64,7 @@ The **Grill-X Admin Panel** is a comprehensive dashboard for managing the Grill-
     - `form-components.jsx`: Wrappers (`FormInput`, `FormSelect`, `FormTextarea`) integrating Formik validation display.
     - `badge.jsx`, `card.jsx`, `label.jsx`: Display components.
     - `notifications/BannerNotification.jsx`: **(New)** Toast-like notification component for alerts.
+    - `data-table.jsx`: **(New)** Reusable TanStack Table component with sorting, filtering, and pagination.
 - **`src/context`**:
   - `SocketContext.jsx`: Manages Socket.io connection, handles real-time events (connect/disconnect), and plays notification sounds.
 - **`src/hooks`**: Custom React hooks for data fetching and logic.

@@ -24,7 +24,7 @@ export const viewport = {
 
 export default function RootLayout({ children }) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className="dark" suppressHydrationWarning>
       <head>
         <link rel="icon" href="/icon-192.svg" type="image/svg+xml" />
         <link rel="apple-touch-icon" href="/icon-192.svg" />

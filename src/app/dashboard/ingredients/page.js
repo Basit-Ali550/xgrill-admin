@@ -1,13 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Plus, Trash2, Edit, RefreshCw } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Plus, Trash2, Edit, RefreshCw, Search } from "lucide-react";
 import { getIngredientsAction, deleteIngredientAction } from "@/app/actions/ingredients";
 import AddIngredientModal from "@/components/ingredients/AddIngredientModal";
 import AdjustStockModal from "@/components/ingredients/AdjustStockModal";
+import { DataTable } from "@/components/ui/data-table";
 
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState([]);
@@ -15,6 +17,7 @@ export default function IngredientsPage() {
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingIngredient, setEditingIngredient] = useState(null);
   const [adjustingIngredient, setAdjustingIngredient] = useState(null);
+  const [searchQuery, setSearchQuery] = useState("");
 
 
   const fetchIngredients = async () => {
@@ -51,12 +54,143 @@ export default function IngredientsPage() {
       fetchIngredients();
   };
 
+  const filteredIngredients = useMemo(() => {
+    if (!searchQuery) return ingredients;
+    return ingredients.filter((item) =>
+      item.name.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  }, [ingredients, searchQuery]);
+
+  const columns = [
+    {
+      accessorKey: "name",
+      header: "Name",
+      cell: ({ row }) => (
+        <div className="font-medium text-white">{row.getValue("name")}</div>
+      ),
+    },
+    {
+      accessorKey: "unit",
+      header: ({ column }) => (
+          <div className="text-center">Unit</div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-center text-gray-400">{row.getValue("unit")}</div>
+      ),
+    },
+    {
+      accessorKey: "stock",
+      header: ({ column }) => (
+          <div className="text-center">Current Stock</div>
+      ),
+      cell: ({ row }) => {
+        const stock = parseFloat(row.getValue("stock"));
+        const threshold = row.original.lowStockThreshold;
+        const isLowStock = stock <= threshold;
+        return (
+          <div className="text-center">
+            <span
+              className={`text-lg font-bold ${
+                isLowStock ? "text-red-400" : "text-green-400"
+              }`}
+            >
+              {stock}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "costPerUnit",
+      header: ({ column }) => (
+          <div className="text-center">Cost/Unit</div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-center text-gray-400">Rs. {row.getValue("costPerUnit")}</div>
+      ),
+    },
+    {
+      accessorKey: "lowStockThreshold",
+      header: ({ column }) => (
+          <div className="text-center">Threshold</div>
+      ),
+      cell: ({ row }) => (
+        <div className="text-center text-gray-500">{row.getValue("lowStockThreshold")}</div>
+      ),
+    },
+    {
+      id: "status",
+      header: ({ column }) => (
+          <div className="text-center">Status</div>
+      ),
+      cell: ({ row }) => {
+        const stock = row.original.stock;
+        const threshold = row.original.lowStockThreshold;
+        const isLowStock = stock <= threshold;
+        return (
+          <div className="text-center">
+            <Badge variant={isLowStock ? "destructive" : "success"}>
+              {isLowStock ? "Low Stock" : "In Stock"}
+            </Badge>
+          </div>
+        );
+      },
+    },
+    {
+      id: "actions",
+      header: ({ column }) => (
+          <div className="text-right">Actions</div>
+      ),
+      cell: ({ row }) => {
+        const item = row.original;
+        return (
+          <div className="flex justify-end gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setAdjustingIngredient(item)}
+              className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
+              title="Adjust Stock"
+            >
+              <RefreshCw size={16} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleEdit(item)}
+              className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
+            >
+              <Edit size={16} />
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleDelete(item.id)}
+              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
+            >
+              <Trash2 size={16} />
+            </Button>
+          </div>
+        );
+      },
+    },
+  ];
+
   return (
     <>
-      <div className="flex justify-end mb-6">
+      <div className="flex justify-between items-center mb-6">
+         <div className="relative max-w-sm flex-1">
+            <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
+            <Input
+              placeholder="Search ingredients..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-9 bg-gray-900 border-gray-700"
+            />
+          </div>
           <Button 
             onClick={() => setIsAddModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white"
+            className="bg-orange-600 hover:bg-orange-700 text-white ml-4"
           >
             <Plus size={18} className="mr-2" />
             Add New Ingredient
@@ -70,100 +204,8 @@ export default function IngredientsPage() {
             </CardTitle>
           </CardHeader>
           
-          <CardContent>
-            {loading ? (
-              <div className="flex justify-center py-12">
-                <div className="w-8 h-8 border-4 border-orange-500 border-t-transparent rounded-full animate-spin" />
-              </div>
-            ) : ingredients.length === 0 ? (
-              <p className="text-gray-500 text-center py-12">No ingredients found. Add some to get started.</p>
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b border-gray-700">
-                      <th className="text-left py-3 px-4 text-gray-400 font-medium">Name</th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Unit</th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Current Stock</th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Cost/Unit</th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Threshold</th>
-                      <th className="text-center py-3 px-4 text-gray-400 font-medium">Status</th>
-                      <th className="text-right py-3 px-4 text-gray-400 font-medium">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {ingredients.map((item) => {
-                      const isLowStock = item.stock <= item.lowStockThreshold;
-                      
-                      return (
-                        <tr
-                          key={item.id}
-                          className={`border-b border-gray-800 hover:bg-gray-800/50 transition-colors ${
-                            isLowStock ? "bg-red-500/5" : ""
-                          }`}
-                        >
-                          <td className="py-4 px-4 font-medium text-white">
-                            {item.name}
-                          </td>
-                          <td className="py-4 px-4 text-center text-gray-400">
-                            {item.unit}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <span
-                              className={`text-lg font-bold ${
-                                isLowStock ? "text-red-400" : "text-green-400"
-                              }`}
-                            >
-                              {item.stock}
-                            </span>
-                          </td>
-                           <td className="py-4 px-4 text-center text-gray-400">
-                            Rs. {item.costPerUnit}
-                          </td>
-                          <td className="py-4 px-4 text-center text-gray-500">
-                            {item.lowStockThreshold}
-                          </td>
-                          <td className="py-4 px-4 text-center">
-                            <Badge variant={isLowStock ? "destructive" : "success"}>
-                              {isLowStock ? "Low Stock" : "In Stock"}
-                            </Badge>
-                          </td>
-                          <td className="py-4 px-4 text-right">
-                            <div className="flex justify-end gap-2">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => setAdjustingIngredient(item)}
-                                className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
-                                title="Adjust Stock"
-                              >
-                                <RefreshCw size={16} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEdit(item)}
-                                className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
-                              >
-                                <Edit size={16} />
-                              </Button>
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDelete(item.id)}
-                                className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-                              >
-                                <Trash2 size={16} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
-              </div>
-            )}
+          <CardContent className="p-0">
+             <DataTable columns={columns} data={filteredIngredients} isLoading={loading} />
           </CardContent>
       </Card>
 

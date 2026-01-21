@@ -27,6 +27,8 @@ const CATEGORIES_WITH_SIZES = Object.keys(SIZE_CONFIG);
 
 export default function AddProductModal({ isOpen, onClose, onAdd }) {
   const [availableIngredients, setAvailableIngredients] = useState([]);
+  const [selectedSize, setSelectedSize] = useState("");
+  const [variantPrice, setVariantPrice] = useState("");
 
   useEffect(() => {
     if (isOpen) {
@@ -37,6 +39,9 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         }
       };
       fetchIngredients();
+      // Reset local state when modal opens
+      setSelectedSize("");
+      setVariantPrice("");
     }
   }, [isOpen]);
 
@@ -48,7 +53,7 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
     ingredients: [],
     recipeData: [],
     image: "",
-    // Size variants - will be populated based on category
+    // Size variants - will be populated dynamically
     variants: [],
   };
 
@@ -62,23 +67,45 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
     return CATEGORIES_WITH_SIZES.includes(category);
   };
 
-  // Initialize variants when category changes
+  // Category change handler
   const handleCategoryChange = (e, setFieldValue, values) => {
     const newCategory = e.target.value;
     setFieldValue("category", newCategory);
+    // Reset variants when category changes
+    setFieldValue("variants", []);
+    setSelectedSize("");
+    setVariantPrice("");
+  };
 
-    // If category has sizes, initialize variant prices
-    const sizes = getSizesForCategory(newCategory);
-    if (sizes.length > 0) {
-      const newVariants = sizes.map((size, index) => ({
-        size,
-        price: "",
-        isDefault: index === Math.floor(sizes.length / 2), // Middle size is default
-      }));
-      setFieldValue("variants", newVariants);
-    } else {
-      setFieldValue("variants", []);
+  const handleAddVariant = (values, setFieldValue) => {
+    if (!selectedSize || !variantPrice) return;
+
+    // Check if size already exists
+    if (values.variants.some((v) => v.size === selectedSize)) {
+      alert("This size has already been added.");
+      return;
     }
+
+    const newVariant = {
+      size: selectedSize,
+      price: variantPrice,
+      isDefault: values.variants.length === 0, // First one is default
+    };
+
+    setFieldValue("variants", [...values.variants, newVariant]);
+    setSelectedSize("");
+    setVariantPrice("");
+  };
+
+  const handleRemoveVariant = (index, values, setFieldValue) => {
+    const newVariants = values.variants.filter((_, i) => i !== index);
+
+    // If we removed the default, make the first one default (if exists)
+    if (values.variants[index].isDefault && newVariants.length > 0) {
+      newVariants[0].isDefault = true;
+    }
+
+    setFieldValue("variants", newVariants);
   };
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
@@ -212,58 +239,117 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                       <DollarSign className="text-green-500" size={20} />
                       Size & Pricing
                     </h3>
-                    <p className="text-sm text-gray-400 mb-4">
-                      Set prices for each size. Leave empty to exclude a size.
-                    </p>
 
-                    <div className="space-y-3">
-                      {values.variants.map((variant, index) => (
-                        <div
-                          key={variant.size}
-                          className="flex items-center gap-4 p-3 bg-gray-900/50 rounded-lg"
+                    {/* Input Area */}
+                    <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-900/40 p-3 rounded-lg border border-gray-700/50">
+                      <div className="col-span-5">
+                        <label className="text-xs text-gray-400 mb-1 block">
+                          Size
+                        </label>
+                        <select
+                          value={selectedSize}
+                          onChange={(e) => setSelectedSize(e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
                         >
-                          <div className="flex-1">
-                            <span className="text-white font-medium">
-                              {variant.size}
-                            </span>
-                            {variant.isDefault && (
-                              <span className="ml-2 text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded">
-                                Default
-                              </span>
-                            )}
-                          </div>
-                          <div className="w-32">
-                            <input
-                              name={`variants[${index}].price`}
-                              value={variant.price}
-                              onChange={handleChange}
-                              type="number"
-                              placeholder="Rs."
-                              min="0"
-                              className="w-full bg-gray-800 border border-gray-700 rounded-md px-3 py-2 text-white text-right focus:outline-none focus:ring-2 focus:ring-orange-500"
-                            />
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const newVariants = values.variants.map(
-                                (v, i) => ({
-                                  ...v,
-                                  isDefault: i === index,
-                                }),
-                              );
-                              setFieldValue("variants", newVariants);
-                            }}
-                            className={`px-3 py-1 rounded text-xs ${
-                              variant.isDefault
-                                ? "bg-orange-500 text-white"
-                                : "bg-gray-700 text-gray-300 hover:bg-gray-600"
-                            }`}
+                          <option value="">Select Size</option>
+                          {getSizesForCategory(values.category).map((size) => (
+                            <option key={size} value={size}>
+                              {size}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="col-span-4">
+                        <label className="text-xs text-gray-400 mb-1 block">
+                          Price
+                        </label>
+                        <input
+                          type="number"
+                          placeholder="Rs."
+                          value={variantPrice}
+                          onChange={(e) => setVariantPrice(e.target.value)}
+                          className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                      <div className="col-span-3">
+                        <Button
+                          type="button"
+                          onClick={() =>
+                            handleAddVariant(values, setFieldValue)
+                          }
+                          disabled={!selectedSize || !variantPrice}
+                          className="w-full bg-orange-600 hover:bg-orange-700 text-white"
+                        >
+                          Add
+                        </Button>
+                      </div>
+                    </div>
+
+                    {/* List of Added Variants */}
+                    <div className="space-y-2">
+                      {values.variants.length === 0 ? (
+                        <p className="text-sm text-gray-500 text-center py-2 italic">
+                          No sizes added yet.
+                        </p>
+                      ) : (
+                        values.variants.map((variant, index) => (
+                          <div
+                            key={index}
+                            className="flex items-center justify-between gap-4 p-3 bg-gray-900/50 rounded-lg border border-gray-800"
                           >
-                            Default
-                          </button>
-                        </div>
-                      ))}
+                            <div className="flex items-center gap-3">
+                              <span className="text-white font-medium w-24">
+                                {variant.size}
+                              </span>
+                              <span className="text-gray-400">
+                                Rs. {variant.price}
+                              </span>
+                              {variant.isDefault && (
+                                <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded ml-2">
+                                  Default
+                                </span>
+                              )}
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              {!variant.isDefault && (
+                                <Button
+                                  type="button"
+                                  size="sm"
+                                  variant="ghost"
+                                  onClick={() => {
+                                    const newVariants = values.variants.map(
+                                      (v, i) => ({
+                                        ...v,
+                                        isDefault: i === index,
+                                      }),
+                                    );
+                                    setFieldValue("variants", newVariants);
+                                  }}
+                                  className="h-8 text-xs text-gray-400 hover:text-white"
+                                >
+                                  Set Default
+                                </Button>
+                              )}
+                              <Button
+                                type="button"
+                                size="sm"
+                                variant="ghost"
+                                onClick={() =>
+                                  handleRemoveVariant(
+                                    index,
+                                    values,
+                                    setFieldValue,
+                                  )
+                                }
+                                className="h-8 w-8 p-0 text-red-400 hover:bg-red-500/10 hover:text-red-300"
+                              >
+                                <X size={16} />
+                              </Button>
+                            </div>
+                          </div>
+                        ))
+                      )}
                     </div>
                   </div>
                 )}
