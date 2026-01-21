@@ -17,7 +17,15 @@ The **Grill-X Admin Panel** is a comprehensive dashboard for managing the Grill-
     - Add, edit, and delete products.
     - Track stock levels with low-stock alerts.
     - Manage product categories (Burgers, Steaks, Pizza, etc.).
-4.  **Authentication**:
+    - **Recipe Builder**: Link ingredients to products with quantity requirements.
+
+4.  **Ingredients Management** (New):
+    - Add, edit, and delete raw ingredients (e.g., Chicken, Buns, Cheese).
+    - Track stock levels with unit support (g, kg, ml, l, pcs).
+    - **Stock Adjustment**: Add or remove stock with reason tracking (Purchase, Expired, Wastage).
+    - Low stock threshold alerts per ingredient.
+
+5.  **Authentication**:
     - **Server Actions**: Uses Next.js Server Actions for secure login.
     - **Cookies**: Authentication state is managed via secure HTTP-only cookies.
     - **Context**: `AuthContext` is minimized, primarily used for client-side UI state.
@@ -31,18 +39,23 @@ The **Grill-X Admin Panel** is a comprehensive dashboard for managing the Grill-
   - `src/app/actions`: **(New)** Server Actions for secure backend interactions.
     - `auth.js`: Handles login/logout logic server-side.
     - `products.js`: Handles product creation server-side.
+    - `ingredients.js`: **(New)** CRUD operations and stock adjustment for ingredients.
   - `src/app/dashboard`: The main dashboard area.
     - `page.js`: Main stats overview and recent activity.
     - `orders/`: Orders management page.
     - `products/`: Product management page.
     - `inventory/`: Inventory tracking page.
+    - `ingredients/`: **(New)** Ingredients management page.
   - `src/app/login`: Authentication page (uses `loginAction`).
 - **`src/components`**: Reusable UI components.
   - **Structure**:
     - `Header.jsx`: Top navigation bar with title.
     - `Sidebar.jsx`: Side navigation menu with active state styling and socket connection status.
   - **Products**:
-    - `products/AddProductModal.jsx`: Formik-based modal. Uses `createProductAction` for secure submission.
+    - `products/AddProductModal.jsx`: Formik-based modal with Recipe Builder. Uses `createProductAction` for secure submission.
+  - **Ingredients** (New):
+    - `ingredients/AddIngredientModal.jsx`: Premium modal for adding/editing ingredients with visual unit selector.
+    - `ingredients/AdjustStockModal.jsx`: Modal for stock adjustments with +/- controls and reason tracking.
   - **UI Library (`src/components/ui`)**:
     - `button.jsx`: Styled button component with variants.
     - `input.jsx`: Text input component.
@@ -50,6 +63,7 @@ The **Grill-X Admin Panel** is a comprehensive dashboard for managing the Grill-
     - `modal.jsx`: Reusable modal wrapper with animations.
     - `form-components.jsx`: Wrappers (`FormInput`, `FormSelect`, `FormTextarea`) integrating Formik validation display.
     - `badge.jsx`, `card.jsx`, `label.jsx`: Display components.
+    - `notifications/BannerNotification.jsx`: **(New)** Toast-like notification component for alerts.
 - **`src/context`**:
   - `SocketContext.jsx`: Manages Socket.io connection, handles real-time events (connect/disconnect), and plays notification sounds.
 - **`src/hooks`**: Custom React hooks for data fetching and logic.

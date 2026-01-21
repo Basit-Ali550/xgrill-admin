@@ -8,7 +8,7 @@ import { useProducts } from "@/hooks/useProducts";
 import AddProductModal from "@/components/products/AddProductModal";
 
 export default function ProductsPage() {
-  const { products, loading, deleteProduct, createProduct } = useProducts();
+  const { products, loading, deleteProduct } = useProducts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
   const handleDelete = async (id, name) => {
@@ -21,17 +21,27 @@ export default function ProductsPage() {
     }
   };
 
-  const handleAddProduct = async (productData) => {
-    try {
-      const result = await createProduct(productData);
-      if (result.success) {
-        // Success notification could be added here
-        console.log("Product added successfully");
-      }
-    } catch (error) {
-      console.error("Failed to create product:", error);
-      alert("Failed to create product. Please try again.");
+  const handleAddProduct = (product) => {
+    console.log("Product added successfully:", product.name);
+  };
+
+  // Get display price for a product
+  const getDisplayPrice = (product) => {
+    if (product.variants && product.variants.length > 0) {
+      // Find default variant or use first one
+      const defaultVariant = product.variants.find(v => v.isDefault) || product.variants[0];
+      return defaultVariant.price;
     }
+    return product.basePrice || product.price || 0;
+  };
+
+  // Get price range string for products with sizes
+  const getPriceRange = (product) => {
+    if (product.variants && product.variants.length > 1) {
+      const prices = product.variants.map(v => v.price).sort((a, b) => a - b);
+      return `Rs. ${prices[0]} - ${prices[prices.length - 1]}`;
+    }
+    return `Rs. ${getDisplayPrice(product)}`;
   };
 
   return (
@@ -87,8 +97,16 @@ export default function ProductsPage() {
                         </div>
                       )}
                       
-                      <div className="absolute top-2 right-2">
-                         <Badge variant={product.isActive ? "success" : "secondary"} className={product.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                      <div className="absolute top-2 right-2 flex gap-1">
+                        {product.hasSizes && (
+                          <Badge className="bg-blue-500/20 text-blue-400">
+                            Sizes
+                          </Badge>
+                        )}
+                        <Badge 
+                          variant={product.isActive ? "success" : "secondary"} 
+                          className={product.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}
+                        >
                           {product.isActive ? "Active" : "Inactive"}
                         </Badge>
                       </div>
@@ -106,32 +124,37 @@ export default function ProductsPage() {
                         {product.description || "No description"}
                       </p>
                       
+                      {/* Show size variants if available */}
+                      {product.hasSizes && product.variants && product.variants.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mb-3">
+                          {product.variants.map((variant) => (
+                            <span 
+                              key={variant.size}
+                              className={`text-xs px-2 py-1 rounded ${
+                                variant.isDefault 
+                                  ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' 
+                                  : 'bg-gray-700/50 text-gray-400'
+                              }`}
+                            >
+                              {variant.size}: Rs.{variant.price}
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                      
                       <div className="flex items-center justify-between pt-3 border-t border-gray-700">
                         <span className="text-xl font-bold text-white">
-                          Rs. {product.price}
+                          {getPriceRange(product)}
                         </span>
                         
-                        <div className="flex items-center gap-2">
-                          <div className="text-right mr-2">
-                            <p className="text-xs text-gray-500">Stock</p>
-                            <p className={`text-sm font-semibold ${
-                              (product.inventory?.quantity || 0) <= (product.inventory?.lowStockThreshold || 10) 
-                                ? 'text-red-400' 
-                                : 'text-gray-300'
-                            }`}>
-                              {product.inventory?.quantity || 0}
-                            </p>
-                          </div>
-                          
-                          <Button
-                            size="sm"
-                            variant="ghost"
-                            onClick={() => handleDelete(product.id, product.name)}
-                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full"
-                          >
-                            🗑️
-                          </Button>
-                        </div>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          onClick={() => handleDelete(product.id, product.name)}
+                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full"
+                        >
+                          🗑️
+                        </Button>
                       </div>
                     </div>
                   </div>

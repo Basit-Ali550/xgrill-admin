@@ -7,26 +7,45 @@ export const productSchema = Yup.object().shape({
   description: Yup.string()
     .min(10, "Description must be at least 10 characters")
     .required("Description is required"),
-  price: Yup.number()
+  basePrice: Yup.number()
     .typeError("Price must be a number")
-    .positive("Price must be positive")
-    .required("Price is required"),
+    .min(0, "Price cannot be negative")
+    .notRequired(), // Optional because products with sizes might not need base price
   category: Yup.string()
     .required("Category is required"),
   image: Yup.string()
-    .url("Must be a valid URL")
+    .test("is-url-or-empty", "Must be a valid URL", (value) => {
+      if (!value || value === "") return true; // Allow empty
+      try {
+        new URL(value);
+        return true;
+      } catch {
+        return false;
+      }
+    })
     .nullable(),
-  initialStock: Yup.number()
-    .typeError("Stock must be a number")
-    .integer("Stock must be an integer")
-    .min(0, "Stock cannot be negative")
-    .required("Initial stock is required"),
-  lowStockThreshold: Yup.number()
-    .typeError("Threshold must be a number")
-    .integer("Threshold must be an integer")
-    .min(0, "Threshold cannot be negative")
-    .required("Low stock threshold is required"),
+  // Legacy ingredients array - optional
   ingredients: Yup.array()
-    .of(Yup.string().required("Ingredient name is required"))
-    .min(1, "At least one ingredient is required"),
+    .of(Yup.string())
+    .notRequired(),
+  // Recipe data for ingredient linking
+  recipeData: Yup.array()
+    .of(
+      Yup.object().shape({
+        ingredientId: Yup.string(),
+        quantityRequired: Yup.number().min(0, "Quantity must be positive"),
+        unit: Yup.string(),
+      })
+    )
+    .notRequired(),
+  // Size variants
+  variants: Yup.array()
+    .of(
+      Yup.object().shape({
+        size: Yup.string(),
+        price: Yup.number().min(0, "Price must be positive"),
+        isDefault: Yup.boolean(),
+      })
+    )
+    .notRequired(),
 });
