@@ -1,5 +1,4 @@
 "use client";
-import { Header } from "@/components/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -27,11 +26,7 @@ export default function OrdersPage() {
   };
 
   return (
-    <>
-      <Header title="Orders" />
-      
-      <div className="p-6">
-        <Card>
+    <Card>
           <CardHeader>
             <CardTitle className="flex items-center justify-between">
               <span className="flex items-center gap-2">
@@ -133,9 +128,7 @@ export default function OrdersPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
-    </>
+      </Card>
   );
 }
 

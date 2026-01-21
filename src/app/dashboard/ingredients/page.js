@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Header } from "@/components/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -54,10 +53,7 @@ export default function IngredientsPage() {
 
   return (
     <>
-      <Header title="Ingredients Management" />
-      
-      <div className="p-6">
-        <div className="flex justify-end mb-6">
+      <div className="flex justify-end mb-6">
           <Button 
             onClick={() => setIsAddModalOpen(true)}
             className="bg-orange-600 hover:bg-orange-700 text-white"
@@ -169,8 +165,7 @@ export default function IngredientsPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
+      </Card>
 
       <AddIngredientModal 
         isOpen={isAddModalOpen} 

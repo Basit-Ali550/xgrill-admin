@@ -1,5 +1,4 @@
 "use client";
-import { Header } from "@/components/Header";
 import { useOrders } from "@/hooks/useOrders";
 import { useInventory } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
@@ -56,11 +55,8 @@ export default function DashboardPage() {
 
   return (
     <>
-      <Header title="Dashboard" />
-      
-      <div style={{ padding: '24px' }}>
-        {/* Stats Grid */}
-        <div style={{ 
+      {/* Stats Grid */}
+      <div style={{ 
           display: 'grid', 
           gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
           gap: '16px',
@@ -206,7 +202,6 @@ export default function DashboardPage() {
                 ))}
               </div>
             )}
-          </div>
         </div>
       </div>
     </>

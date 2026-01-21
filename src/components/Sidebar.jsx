@@ -2,152 +2,162 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useSocket } from "@/context/SocketContext";
+import { useSidebar } from "@/context/SidebarContext";
+import { useState } from "react";
+import {
+  MdDashboard,
+  MdReceipt,
+  MdInventory2,
+  MdFastfood,
+  MdLocalOffer,
+  MdChevronLeft,
+  MdChevronRight,
+  MdClose,
+} from "react-icons/md";
+import { GiGrainBundle } from "react-icons/gi";
+import { FaFire } from "react-icons/fa";
 
 const navItems = [
-  { href: "/dashboard", label: "Dashboard", icon: "📊" },
-  { href: "/dashboard/orders", label: "Orders", icon: "📋" },
-  { href: "/dashboard/ingredients", label: "Ingredients", icon: "🥦" },
-  { href: "/dashboard/inventory", label: "Inventory", icon: "📦" },
-  { href: "/dashboard/products", label: "Products", icon: "🍔" },
-  { href: "/dashboard/deals", label: "Deals", icon: "🏷️" },
+  { href: "/dashboard", label: "Dashboard", Icon: MdDashboard },
+  { href: "/dashboard/orders", label: "Orders", Icon: MdReceipt },
+  { href: "/dashboard/ingredients", label: "Ingredients", Icon: GiGrainBundle },
+  { href: "/dashboard/inventory", label: "Inventory", Icon: MdInventory2 },
+  { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
+  { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
 ];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { isConnected } = useSocket();
+  const { isOpen, isMobile, close } = useSidebar();
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   const isActive = (href) => {
     if (href === "/dashboard") return pathname === "/dashboard";
     return pathname.startsWith(href);
   };
 
+  // For desktop, use collapsed state; for mobile, always expanded in slide-out
+  const showLabels = isMobile ? true : !isCollapsed;
+  const sidebarWidth = isMobile ? "280px" : isCollapsed ? "80px" : "256px";
+
   return (
-    <aside
-      style={{
-        width: "256px",
-        minHeight: "100vh",
-        background: "rgba(17, 24, 39, 0.9)",
-        backdropFilter: "blur(12px)",
-        borderRight: "1px solid rgba(75, 85, 99, 0.5)",
-        display: "flex",
-        flexDirection: "column",
-      }}
-    >
-      {/* Logo */}
-      <div
-        style={{
-          padding: "24px",
-          borderBottom: "1px solid rgba(75, 85, 99, 0.5)",
-        }}
-      >
-        <Link
-          href="/dashboard"
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "12px",
-            textDecoration: "none",
-          }}
-        >
-          <div
-            style={{
-              width: "40px",
-              height: "40px",
-              background: "linear-gradient(135deg, #f97316, #dc2626)",
-              borderRadius: "12px",
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              boxShadow: "0 10px 15px -3px rgba(0, 0, 0, 0.3)",
-            }}
-          >
-            <span style={{ fontSize: "20px" }}>🔥</span>
-          </div>
-          <div>
-            <h1
-              style={{
-                fontSize: "20px",
-                fontWeight: "bold",
-                color: "white",
-                margin: 0,
-              }}
-            >
-              Grill-X
-            </h1>
-            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-              <span
-                style={{
-                  width: "8px",
-                  height: "8px",
-                  borderRadius: "50%",
-                  background: isConnected ? "#22c55e" : "#ef4444",
-                  animation: isConnected ? "pulse 2s infinite" : "none",
-                }}
-              />
-              <span style={{ fontSize: "12px", color: "#9ca3af" }}>
-                {isConnected ? "Live" : "Offline"}
-              </span>
-            </div>
-          </div>
-        </Link>
-      </div>
-
-      {/* Navigation */}
-      <nav style={{ flex: 1, padding: "16px" }}>
-        {navItems.map((item) => {
-          const active = isActive(item.href);
-          return (
-            <Link
-              key={item.href}
-              href={item.href}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "12px 16px",
-                borderRadius: "12px",
-                marginBottom: "8px",
-                textDecoration: "none",
-                transition: "all 0.2s",
-                background: active ? "rgba(249, 115, 22, 0.2)" : "transparent",
-                color: active ? "#fb923c" : "#9ca3af",
-                border: active
-                  ? "1px solid rgba(249, 115, 22, 0.3)"
-                  : "1px solid transparent",
-              }}
-            >
-              <span style={{ fontSize: "18px" }}>{item.icon}</span>
-              <span style={{ fontWeight: "500" }}>{item.label}</span>
-            </Link>
-          );
-        })}
-      </nav>
-
-      {/* Footer */}
-      <div
-        style={{
-          padding: "16px",
-          borderTop: "1px solid rgba(75, 85, 99, 0.5)",
-        }}
-      >
+    <>
+      {/* Mobile overlay */}
+      {isMobile && isOpen && (
         <div
-          style={{ fontSize: "12px", color: "#6b7280", textAlign: "center" }}
-        >
-          Real-time Order Management
-        </div>
-      </div>
+          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
+          onClick={close}
+        />
+      )}
 
-      <style jsx global>{`
-        @keyframes pulse {
-          0%,
-          100% {
-            opacity: 1;
-          }
-          50% {
-            opacity: 0.5;
-          }
-        }
-      `}</style>
-    </aside>
+      <aside
+        className={`
+          fixed lg:static z-50 
+          h-screen flex flex-col
+          bg-gray-900/95 backdrop-blur-xl
+          border-r border-gray-700/50
+          transition-all duration-300 ease-in-out
+          ${isMobile ? (isOpen ? "translate-x-0" : "-translate-x-full") : "translate-x-0"}
+        `}
+        style={{ width: sidebarWidth, minWidth: sidebarWidth }}
+      >
+        {/* Logo */}
+        <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
+          <Link
+            href="/dashboard"
+            className="flex items-center gap-3 no-underline"
+          >
+            <div className="w-10 h-10 bg-gradient-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30 flex-shrink-0">
+              <FaFire className="text-white text-xl" />
+            </div>
+            {showLabels && (
+              <div>
+                <h1 className="text-lg font-bold text-white m-0">Grill-X</h1>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`}
+                  />
+                  <span className="text-xs text-gray-400">
+                    {isConnected ? "Live" : "Offline"}
+                  </span>
+                </div>
+              </div>
+            )}
+          </Link>
+
+          {/* Mobile close button */}
+          {isMobile && (
+            <button
+              onClick={close}
+              className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors"
+            >
+              <MdClose size={24} />
+            </button>
+          )}
+        </div>
+
+        {/* Navigation */}
+        <nav className="flex-1 p-3 overflow-y-auto">
+          {navItems.map((item) => {
+            const active = isActive(item.href);
+            const Icon = item.Icon;
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                onClick={isMobile ? close : undefined}
+                className={`
+                  flex items-center gap-3 px-3 py-3 rounded-xl mb-2 no-underline transition-all duration-200
+                  ${
+                    active
+                      ? "bg-orange-500/20 text-orange-400 border border-orange-500/30"
+                      : "text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent"
+                  }
+                  ${!showLabels ? "justify-center" : ""}
+                `}
+                title={!showLabels ? item.label : undefined}
+              >
+                <Icon
+                  size={22}
+                  className={`flex-shrink-0 ${active ? "text-orange-400" : ""}`}
+                />
+                {showLabels && (
+                  <span className="font-medium">{item.label}</span>
+                )}
+              </Link>
+            );
+          })}
+        </nav>
+
+        {/* Collapse button (Desktop only) */}
+        {!isMobile && (
+          <div className="p-3 border-t border-gray-700/50">
+            <button
+              onClick={() => setIsCollapsed(!isCollapsed)}
+              className="w-full flex items-center justify-center gap-2 p-3 rounded-xl text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
+            >
+              {isCollapsed ? (
+                <MdChevronRight size={22} />
+              ) : (
+                <>
+                  <MdChevronLeft size={22} />
+                  <span className="text-sm">Collapse</span>
+                </>
+              )}
+            </button>
+          </div>
+        )}
+
+        {/* Footer */}
+        {showLabels && (
+          <div className="p-4 border-t border-gray-700/50">
+            <p className="text-xs text-gray-500 text-center">
+              Real-time Order Management
+            </p>
+          </div>
+        )}
+      </aside>
+    </>
   );
 }

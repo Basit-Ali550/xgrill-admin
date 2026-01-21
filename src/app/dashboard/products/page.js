@@ -1,23 +1,33 @@
 "use client";
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { useProducts } from "@/hooks/useProducts";
 import AddProductModal from "@/components/products/AddProductModal";
 
 export default function ProductsPage() {
   const { products, loading, deleteProduct } = useProducts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null); // { id, name }
+  const [isDeleting, setIsDeleting] = useState(false);
 
-  const handleDelete = async (id, name) => {
-    if (confirm(`Are you sure you want to delete "${name}"?`)) {
-      try {
-        await deleteProduct(id);
-      } catch (error) {
-        console.error("Failed to delete product:", error);
-      }
+  const handleDeleteClick = (id, name) => {
+    setDeleteTarget({ id, name });
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget) return;
+    setIsDeleting(true);
+    try {
+      await deleteProduct(deleteTarget.id);
+    } catch (error) {
+      console.error("Failed to delete product:", error);
+    } finally {
+      setIsDeleting(false);
+      setDeleteTarget(null);
     }
   };
 
@@ -46,10 +56,7 @@ export default function ProductsPage() {
 
   return (
     <>
-      <Header title="Products" />
-      
-      <div className="p-6">
-        <Card>
+      <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
@@ -147,14 +154,27 @@ export default function ProductsPage() {
                           {getPriceRange(product)}
                         </span>
                         
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          onClick={() => handleDelete(product.id, product.name)}
-                          className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full"
-                        >
-                          🗑️
-                        </Button>
+                        <div className="flex gap-1">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => {
+                              setEditingProduct(product);
+                              setIsAddModalOpen(true);
+                            }}
+                            className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-full"
+                          >
+                            ✏️
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={() => handleDeleteClick(product.id, product.name)}
+                            className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full"
+                          >
+                            🗑️
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -162,13 +182,24 @@ export default function ProductsPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
+      </Card>
 
       <AddProductModal 
         isOpen={isAddModalOpen} 
         onClose={() => setIsAddModalOpen(false)} 
         onAdd={handleAddProduct}
+      />
+
+      <ConfirmDialog
+        isOpen={!!deleteTarget}
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={handleDeleteConfirm}
+        title="Delete Product"
+        message={`Are you sure you want to delete "${deleteTarget?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        cancelText="Cancel"
+        variant="danger"
+        loading={isDeleting}
       />
     </>
   );

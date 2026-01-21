@@ -1,6 +1,5 @@
 "use client";
 import { useState } from "react";
-import { Header } from "@/components/Header";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,11 +23,7 @@ export default function InventoryPage() {
   };
 
   return (
-    <>
-      <Header title="Inventory Management" />
-      
-      <div className="p-6">
-        <Card>
+    <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <span>📦</span> Stock Levels
@@ -131,8 +126,6 @@ export default function InventoryPage() {
               </div>
             )}
           </CardContent>
-        </Card>
-      </div>
-    </>
+    </Card>
   );
 }
