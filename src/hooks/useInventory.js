@@ -72,12 +72,21 @@ export function useInventory() {
 
     socket.on("inventory_update", handleInventoryUpdate);
     socket.on("low_stock_alert", handleLowStockAlert);
+    socket.on("inventory_deleted", (data) => {
+      setInventory((prev) => prev.filter((item) => item.id !== data.id));
+      setLowStockItems((prev) => prev.filter((item) => item.id !== data.id));
+    });
+    socket.on("inventory_added", () => {
+      fetchInventory();
+    });
 
     return () => {
       socket.off("inventory_update", handleInventoryUpdate);
       socket.off("low_stock_alert", handleLowStockAlert);
+      socket.off("inventory_deleted");
+      socket.off("inventory_added");
     };
-  }, [socket]);
+  }, [socket, fetchInventory]);
 
   // Fetch inventory on mount
   useEffect(() => {
@@ -120,6 +129,26 @@ export function useInventory() {
     }
   };
 
+  // Delete inventory item
+  const deleteInventoryItem = async (id) => {
+    try {
+      const res = await fetch(`${API_URL}/api/v1/inventory/${id}`, {
+        method: "DELETE",
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+      const data = await res.json();
+      if (data.success) {
+        setInventory((prev) => prev.filter((item) => item.id !== id));
+        setLowStockItems((prev) => prev.filter((item) => item.id !== id));
+      }
+      return data;
+    } catch (err) {
+      throw err;
+    }
+  };
+
   return {
     inventory,
     lowStockItems,
@@ -128,5 +157,6 @@ export function useInventory() {
     fetchInventory,
     updateInventory,
     adjustInventory,
+    deleteInventoryItem,
   };
 }

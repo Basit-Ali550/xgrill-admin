@@ -102,3 +102,14 @@ bun dev
 ```
 
 Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+
+## Inventory Management
+
+The admin panel includes an **Inventory** dashboard located at `/dashboard/inventory`. It provides:
+
+- Real‑time stock levels for all inventory items.
+- Ability to **adjust stock** directly from the table.
+- An **Add Inventory** button that opens a modal to create new inventory entries with optional low‑stock threshold.
+- Low‑stock alerts highlighted in red.
+
+The UI leverages the `useInventory` hook which communicates with the backend API (`/api/v1/inventory` and `/api/v1/inventory/adjust/:productId`).
