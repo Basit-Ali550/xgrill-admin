@@ -1,9 +1,8 @@
 "use client";
 import { createContext, useContext, useEffect, useState } from "react";
+import { api, API_URL } from "@/lib/api";
 
 const AuthContext = createContext(null);
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
 
 export function AuthProvider({ children }) {
   const [user, setUser] = useState(null);
@@ -11,7 +10,6 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for stored auth on mount
     const initAuth = () => {
       try {
         const storedToken = localStorage.getItem("token");
@@ -23,7 +21,6 @@ export function AuthProvider({ children }) {
         }
       } catch (error) {
         console.error("Failed to restore auth:", error);
-        // Clear invalid data
         localStorage.removeItem("token");
         localStorage.removeItem("user");
       } finally {
@@ -48,7 +45,6 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Login failed");
     }
 
-    // Check if user is admin
     if (data.data.user.role !== "ADMIN") {
       throw new Error("Access denied. Admin only.");
     }
