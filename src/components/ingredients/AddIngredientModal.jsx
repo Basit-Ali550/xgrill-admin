@@ -89,7 +89,6 @@ export default function AddIngredientModal({
       >
         {({ isSubmitting, handleChange, values }) => (
           <Form className="space-y-6">
-            {/* Ingredient Name */}
             <div className="relative">
               <FormInput
                 label="Ingredient Name"
@@ -98,8 +97,6 @@ export default function AddIngredientModal({
                 className="bg-gray-800 border-gray-700 h-12"
               />
             </div>
-
-            {/* Unit Selection - Card Grid */}
             <div>
               <label className="block text-sm font-medium text-gray-400 mb-3 flex items-center gap-2">
                 <Scale size={14} /> Unit of Measurement
@@ -144,8 +141,6 @@ export default function AddIngredientModal({
                   <span className="text-gray-500 text-sm">{values.unit}</span>
                 </div>
               </div>
-
-              {/* Cost Per Unit */}
               <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
                 <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                   <DollarSign size={12} /> Cost per {values.unit}
@@ -161,8 +156,6 @@ export default function AddIngredientModal({
                 </div>
               </div>
             </div>
-
-            {/* Low Stock Alert */}
             <div className="bg-orange-500/10 rounded-xl p-4 border border-orange-500/30">
               <div className="flex items-start gap-3">
                 <div className="p-2 bg-orange-500/20 rounded-lg">
@@ -173,7 +166,8 @@ export default function AddIngredientModal({
                     Low Stock Alert Threshold
                   </label>
                   <p className="text-xs text-gray-500 mb-2">
-                    You'll receive an alert when stock falls below this level
+                    You&apos;ll receive an alert when stock falls below this
+                    level
                   </p>
                   <div className="flex items-center gap-2">
                     <FormInput
@@ -187,8 +181,6 @@ export default function AddIngredientModal({
                 </div>
               </div>
             </div>
-
-            {/* Footer Actions */}
             <ModalFooter className="pt-4 border-t border-gray-800">
               <Button
                 type="button"

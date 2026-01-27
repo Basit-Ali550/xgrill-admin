@@ -2,8 +2,7 @@
 
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000";
+import axiosInstance, { apiCall } from "@/lib/api-client";
 
 export async function loginAction(prevState, formData) {
   const email = formData.get("email");
@@ -13,17 +12,16 @@ export async function loginAction(prevState, formData) {
     return { error: "Please provide both email and password." };
   }
 
+  // We don't use apiCall here directly because we need custom handling for the success case (setting cookies)
+  // and we want to catch errors to return a specific format to the form, not redirect on 401 (since we are logging in).
   try {
-    const res = await fetch(`${API_URL}/api/v1/auth/login`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ email, password }),
-    });
+    const response = await axiosInstance.post("/api/v1/auth/login", { email, password });
+    
+    // Axios interceptor returns response.data directly
+    const data = response;
 
-    const data = await res.json();
-
-    if (!res.ok) {
-      return { error: data.message || "Login failed" };
+    if (!data.success) {
+      return { error: data.error || data.message || "Login failed" };
     }
 
     if (data.data.user.role !== "ADMIN") {
@@ -36,25 +34,14 @@ export async function loginAction(prevState, formData) {
       httpOnly: true,
       secure: process.env.NODE_ENV === "production",
       path: "/",
-      maxAge: 60 * 60 * 24 * 7, // 1 week
     });
     
-    // Store user data in a non-httpOnly cookie if needed for client-side display, 
-    // or just rely on server-side rendering. For now, let's keep it minimal.
-    // We can also store a simple flag or the user object (serialized) but careful with sensitive info.
-    // Let's store basic user info for the client context to hydrate if needed, 
-    // or we can just skip it and fetch user profile on load.
-    // Given the "AuthContext" exists, let's set a user cookie too but non-httpOnly? 
-    // Actually, let's just use the token in the cookie for server actions. 
-    // Client side can fetch "/me" if needed.
-    
-    // However, to keep AuthContext happy for now without breaking everything:
-    // We'll let the client handling the success redirect also set the localStorage
     return { success: true, data: data.data };
     
   } catch (error) {
     console.error("Login error:", error);
-    return { error: "Something went wrong. Please try again." };
+    const msg = error.response?.data?.message || "Something went wrong. Please try again.";
+    return { error: msg };
   }
 }
 
@@ -63,3 +50,4 @@ export async function logoutAction() {
   cookieStore.delete("token");
   redirect("/login");
 }
+
