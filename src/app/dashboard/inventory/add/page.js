@@ -7,11 +7,11 @@ import { Button } from "@/components/ui/button";
 import { FormInput, FormSelect } from "@/components/ui/form-components";
 import { useAuth } from "@/context/AuthContext";
 import {
-  CATEGORY_OPTIONS,
-  UNIT_TYPE_OPTIONS,
+  INVENTORY_CATEGORIES,
+  UNIT_TYPES,
   SIZE_OPTIONS,
   STATUS_OPTIONS,
-} from "@/constants/inventoryOptions";
+} from "@/constants";
 
 // Yup validation schema
 const inventoryValidationSchema = Yup.object({
@@ -124,7 +124,7 @@ export default function AddInventoryPage() {
                 <FormSelect
                   label="Category"
                   name="category"
-                  options={CATEGORY_OPTIONS}
+                  options={INVENTORY_CATEGORIES}
                 />
 
                 <FormInput
@@ -139,7 +139,7 @@ export default function AddInventoryPage() {
                 <FormSelect
                   label="Unit Type"
                   name="unitType"
-                  options={UNIT_TYPE_OPTIONS}
+                  options={UNIT_TYPES}
                 />
 
                 <FormSelect

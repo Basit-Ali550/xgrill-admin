@@ -10,47 +10,35 @@ import {
 } from "@/components/ui/form-components";
 import ImageUploader from "@/components/ui/ImageUploader";
 import { productSchema } from "@/lib/validations";
+import { api } from "@/lib/api";
+import { useIngredients } from "@/hooks/useIngredients";
 import { Plus, X, Image as ImageIcon, Flame, DollarSign } from "lucide-react";
 import { createProductAction } from "@/app/actions/products";
 import { getIngredientsAction } from "@/app/actions/ingredients";
-
-// Size configurations by category
-const SIZE_CONFIG = {
-  Pizza: ["Small", "Medium", "Large", "Extra Large"],
-  Pasta: ["Regular", "Large"],
-  Burgers: ["Single", "Double"],
-  Drinks: ["Small", "Medium", "Large"],
-};
-
-// Categories that support sizes
-// Categories that support sizes
-const CATEGORIES_WITH_SIZES = Object.keys(SIZE_CONFIG);
-
-const PRODUCT_CATEGORIES = [
-  "Burgers",
-  "Steaks",
-  "Pizza",
-  "Pasta",
-  "Appetizers",
-  "Drinks",
-];
-
-const RECIPE_UNITS = [{ label: "--", value: "" }, "g", "kg", "ml", "l", "pcs"];
+import {
+  PRODUCT_CATEGORIES,
+  RECIPE_UNITS,
+  IMAGE_UPLOAD_FOLDERS,
+  SIZE_CONFIG,
+  CATEGORIES_WITH_SIZES,
+} from "@/constants";
 
 export default function AddProductModal({ isOpen, onClose, onAdd }) {
-  const [availableIngredients, setAvailableIngredients] = useState([]);
+  // Use client hook to fetch ingredients (hooks handle client-side fetching)
+  const { ingredients: availableIngredients, fetchIngredients } =
+    useIngredients();
   const [selectedSize, setSelectedSize] = useState("");
   const [variantPrice, setVariantPrice] = useState("");
 
   useEffect(() => {
     if (isOpen) {
-      const fetchIngredients = async () => {
-        const res = await getIngredientsAction();
-        if (res?.success) {
-          setAvailableIngredients(res.data);
-        }
-      };
-      fetchIngredients();
+      // Trigger client-side fetch when modal opens
+      try {
+        fetchIngredients();
+      } catch (err) {
+        console.error("Failed to fetch ingredients:", err);
+      }
+
       // Reset local state when modal opens
       setSelectedSize("");
       setVariantPrice("");
@@ -171,17 +159,20 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         })),
       };
 
-      const result = await createProductAction(productData);
+      try {
+        const res = await api.post("/api/v1/products", productData);
 
-      if (result.success) {
-        if (onAdd) {
-          onAdd(result.data);
+        if (res?.success) {
+          if (onAdd) onAdd(res.data);
+          resetForm();
+          onClose();
+        } else {
+          console.error("Failed to add product:", res?.error || res);
+          alert(res?.error || "Failed to add product");
         }
-        resetForm();
-        onClose();
-      } else {
-        console.error("Failed to add product:", result.error);
-        alert(result.error);
+      } catch (err) {
+        console.error("Error creating product:", err);
+        alert(err.message || "Error creating product");
       }
     } catch (error) {
       console.error("Error adding product:", error);
@@ -483,7 +474,7 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                   <ImageUploader
                     value={values.image}
                     onChange={(url) => setFieldValue("image", url)}
-                    folder="grill-x/products"
+                    folder={IMAGE_UPLOAD_FOLDERS.PRODUCTS}
                     placeholder="Click to upload or drag and drop"
                   />
 
