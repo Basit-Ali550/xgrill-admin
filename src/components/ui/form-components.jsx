@@ -2,6 +2,7 @@
 import React from "react";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { useField } from "formik";
 
@@ -68,7 +69,14 @@ const FormTextarea = ({ label, className, ...props }) => {
   );
 };
 
-const FormSelect = ({ label, children, className, ...props }) => {
+const FormSelect = ({
+  label,
+  children, // Kept for backward compat but Select ignores it in favor of options
+  className,
+  options = [],
+  placeholder = "Select option",
+  ...props
+}) => {
   const [field, meta] = useField(props);
   const errorText = meta.touched && meta.error ? meta.error : "";
 
@@ -82,17 +90,16 @@ const FormSelect = ({ label, children, className, ...props }) => {
           {label}
         </Label>
       )}
-      <select
+      <Select
         {...field}
         {...props}
+        options={options}
+        placeholder={placeholder}
         className={cn(
-          "flex h-10 w-full rounded-md border border-gray-600 mt-1 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-1 focus:ring-orange-500 focus:border-transparent disabled:cursor-not-allowed disabled:opacity-50 appearance-none cursor-pointer",
           errorText && "border-red-400 focus:ring-red-400",
           className,
         )}
-      >
-        {children}
-      </select>
+      />
       {errorText && (
         <p className="text-[10px] text-red-400 font-medium animate-in slide-in-from-top-1">
           {errorText}

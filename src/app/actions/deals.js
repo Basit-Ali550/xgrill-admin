@@ -1,6 +1,4 @@
 "use server";
-
-import { revalidatePath } from "next/cache"; 
 import axiosInstance, { apiCall } from "@/lib/api-client";
 
 export async function getDealsAction() {

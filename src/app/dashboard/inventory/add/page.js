@@ -121,13 +121,11 @@ export default function AddInventoryPage() {
               />
 
               <div className="grid grid-cols-2 gap-4">
-                <FormSelect label="Category" name="category">
-                  {CATEGORY_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </FormSelect>
+                <FormSelect
+                  label="Category"
+                  name="category"
+                  options={CATEGORY_OPTIONS}
+                />
 
                 <FormInput
                   label="Brand (Optional)"
@@ -138,21 +136,17 @@ export default function AddInventoryPage() {
               </div>
 
               <div className="grid grid-cols-2 gap-4">
-                <FormSelect label="Unit Type" name="unitType">
-                  {UNIT_TYPE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </FormSelect>
+                <FormSelect
+                  label="Unit Type"
+                  name="unitType"
+                  options={UNIT_TYPE_OPTIONS}
+                />
 
-                <FormSelect label="Size / Variant" name="size">
-                  {SIZE_OPTIONS.map((opt) => (
-                    <option key={opt.value} value={opt.value}>
-                      {opt.label}
-                    </option>
-                  ))}
-                </FormSelect>
+                <FormSelect
+                  label="Size / Variant"
+                  name="size"
+                  options={SIZE_OPTIONS}
+                />
               </div>
 
               <FormInput
@@ -184,13 +178,11 @@ export default function AddInventoryPage() {
                 type="date"
               />
 
-              <FormSelect label="Status" name="status">
-                {STATUS_OPTIONS.map((opt) => (
-                  <option key={opt.value} value={opt.value}>
-                    {opt.label}
-                  </option>
-                ))}
-              </FormSelect>
+              <FormSelect
+                label="Status"
+                name="status"
+                options={STATUS_OPTIONS}
+              />
 
               {status?.error && (
                 <p className="text-red-500 text-sm bg-red-500/10 p-2 rounded-lg">

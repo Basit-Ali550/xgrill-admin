@@ -23,7 +23,19 @@ const SIZE_CONFIG = {
 };
 
 // Categories that support sizes
+// Categories that support sizes
 const CATEGORIES_WITH_SIZES = Object.keys(SIZE_CONFIG);
+
+const PRODUCT_CATEGORIES = [
+  "Burgers",
+  "Steaks",
+  "Pizza",
+  "Pasta",
+  "Appetizers",
+  "Drinks",
+];
+
+const RECIPE_UNITS = [{ label: "--", value: "" }, "g", "kg", "ml", "l", "pcs"];
 
 export default function AddProductModal({ isOpen, onClose, onAdd }) {
   const [availableIngredients, setAvailableIngredients] = useState([]);
@@ -123,10 +135,30 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         (v) => v.price && parseFloat(v.price) > 0,
       );
 
+      // Validation: If category expects sizes but none added, show error
+      if (categoryHasSizes(values.category) && cleanedVariants.length === 0) {
+        alert(`Please add at least one size for ${values.category}`);
+        setSubmitting(false);
+        return;
+      }
+
+      // Determine final base price
+      let finalBasePrice = parseFloat(values.basePrice) || 0;
+
+      // If we have variants, the base price should be the price of the default variant
+      // or the first variant if no default is explicitly set (though logic usually enforces default)
+      if (cleanedVariants.length > 0) {
+        const defaultVariant =
+          cleanedVariants.find((v) => v.isDefault) || cleanedVariants[0];
+        if (defaultVariant) {
+          finalBasePrice = parseFloat(defaultVariant.price);
+        }
+      }
+
       const productData = {
         name: values.name,
         description: values.description,
-        basePrice: parseFloat(values.basePrice) || 0,
+        basePrice: finalBasePrice,
         image: values.image,
         category: values.category,
         ingredients: cleanedIngredients,
@@ -189,39 +221,27 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                       className="col-span-2"
                     />
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-1.5">
-                        Category
-                      </label>
-                      <select
-                        name="category"
-                        value={values.category}
-                        onChange={(e) =>
-                          handleCategoryChange(e, setFieldValue, values)
-                        }
-                        className="w-full bg-gray-900 border border-gray-700 rounded-lg px-3 py-2.5 text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                      >
-                        <option value="Burgers">Burgers</option>
-                        <option value="Steaks">Steaks</option>
-                        <option value="Pizza">Pizza</option>
-                        <option value="Pasta">Pasta</option>
-                        <option value="Appetizers">Appetizers</option>
-                        <option value="Drinks">Drinks</option>
-                      </select>
-                    </div>
-
-                    {/* Base price - shown when no sizes OR as minimum price */}
-                    <FormInput
-                      label={
-                        categoryHasSizes(values.category)
-                          ? "Base Price (Rs.)"
-                          : "Price (Rs.)"
+                    <FormSelect
+                      label="Category"
+                      name="category"
+                      value={values.category}
+                      onChange={(e) =>
+                        handleCategoryChange(e, setFieldValue, values)
                       }
-                      name="basePrice"
-                      type="number"
-                      placeholder="0.00"
-                      min="0"
+                      options={PRODUCT_CATEGORIES}
+                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
                     />
+
+                    {/* Base price - show ONLY when category has NO sizes */}
+                    {!categoryHasSizes(values.category) && (
+                      <FormInput
+                        label="Price (Rs.)"
+                        name="basePrice"
+                        type="number"
+                        placeholder="0.00"
+                        min="0"
+                      />
+                    )}
                   </div>
 
                   <FormTextarea
@@ -380,24 +400,18 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                                   className="grid grid-cols-12 gap-2 group items-end pb-2 border-b border-gray-800 last:border-0"
                                 >
                                   <div className="col-span-5">
-                                    <label className="text-xs text-gray-500 mb-1 block">
-                                      Ingredient
-                                    </label>
-                                    <select
+                                    <FormSelect
+                                      label="Ingredient"
                                       name={`recipeData[${index}].ingredientId`}
-                                      value={item.ingredientId}
-                                      onChange={handleChange}
-                                      className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    >
-                                      <option value="">
-                                        Select Ingredient
-                                      </option>
-                                      {availableIngredients.map((ing) => (
-                                        <option key={ing.id} value={ing.id}>
-                                          {ing.name} (stored: {ing.unit})
-                                        </option>
-                                      ))}
-                                    </select>
+                                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
+                                      placeholder="Select Ingredient"
+                                      options={availableIngredients.map(
+                                        (ing) => ({
+                                          label: `${ing.name} (stored: ${ing.unit})`,
+                                          value: ing.id,
+                                        }),
+                                      )}
+                                    />
                                   </div>
                                   <div className="col-span-3">
                                     <label className="text-xs text-gray-500 mb-1 block">
@@ -414,22 +428,12 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
                                     />
                                   </div>
                                   <div className="col-span-2">
-                                    <label className="text-xs text-gray-500 mb-1 block">
-                                      Unit
-                                    </label>
-                                    <select
+                                    <FormSelect
+                                      label="Unit"
                                       name={`recipeData[${index}].unit`}
-                                      value={item.unit || ""}
-                                      onChange={handleChange}
-                                      className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                                    >
-                                      <option value="">--</option>
-                                      <option value="g">g</option>
-                                      <option value="kg">kg</option>
-                                      <option value="ml">ml</option>
-                                      <option value="l">l</option>
-                                      <option value="pcs">pcs</option>
-                                    </select>
+                                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
+                                      options={RECIPE_UNITS}
+                                    />
                                   </div>
                                   <div className="col-span-2 flex justify-end pb-1">
                                     <Button
