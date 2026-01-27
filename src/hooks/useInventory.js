@@ -64,8 +64,8 @@ export function useInventory() {
     return await api.put(`/api/v1/inventory/${id}`, { quantity: parseInt(quantity) });
   };
 
-  const adjustInventory = async (productId, adjustment) => {
-    return await api.patch(`/api/v1/inventory/adjust/${productId}`, { adjustment: parseInt(adjustment) });
+  const adjustInventory = async (productId, adjustment, reason) => {
+    return await api.patch(`/api/v1/inventory/adjust/${productId}`, { adjustment: parseInt(adjustment), reason });
   };
 
   const deleteInventoryItem = async (id) => {

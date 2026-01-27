@@ -137,6 +137,44 @@ export default function IngredientsPage() {
       },
     },
     {
+      accessorKey: "createdAt",
+      header: "Created",
+      cell: ({ row }) => (
+        <div className="text-xs text-gray-500">
+          {new Date(row.original.createdAt).toLocaleDateString()}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "updatedAt",
+      header: "Updated",
+      cell: ({ row }) => (
+        <div className="text-xs text-gray-400">
+          {new Date(row.original.updatedAt).toLocaleDateString()}
+        </div>
+      ),
+    },
+    {
+      accessorKey: "lastAdjustmentReason",
+      header: "Last Adjustment",
+      cell: ({ row }) => {
+        const reason = row.original.lastAdjustmentReason;
+        const date = row.original.lastAdjustmentDate;
+        if (!reason && !date) return <div className="text-xs text-gray-600">-</div>;
+        
+        return (
+          <div className="flex flex-col">
+            <span className="text-xs text-orange-300 font-medium truncate max-w-[150px]" title={reason}>
+              {reason || 'Unknown'}
+            </span>
+            <span className="text-[10px] text-gray-500">
+              {date ? new Date(date).toLocaleString() : ''}
+            </span>
+          </div>
+        );
+      },
+    },
+    {
       id: "actions",
       header: ({ column }) => (
           <div className="text-right">Actions</div>

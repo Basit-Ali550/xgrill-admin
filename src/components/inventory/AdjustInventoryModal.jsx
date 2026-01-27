@@ -4,7 +4,6 @@ import { useState, useRef, useEffect } from "react";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Plus, Minus, ChevronDown } from "lucide-react";
-import { adjustStockAction } from "@/app/actions/ingredients";
 import toast from "react-hot-toast";
 
 const REASONS = [
@@ -18,10 +17,11 @@ const REASONS = [
   { value: "other", label: "Other", icon: "📝" },
 ];
 
-export default function AdjustStockModal({
+export default function AdjustInventoryModal({
   isOpen,
   onClose,
-  ingredient,
+  item,
+  onAdjust, // Passed from parent (hook function)
   onSuccess,
 }) {
   const [adjustment, setAdjustment] = useState(0);
@@ -42,7 +42,7 @@ export default function AdjustStockModal({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  if (!ingredient) return null;
+  if (!item) return null;
 
   const handleSubmit = async () => {
     if (adjustment === 0) {
@@ -57,21 +57,19 @@ export default function AdjustStockModal({
 
     setIsSubmitting(true);
     try {
-      const result = await adjustStockAction(
-        ingredient.id,
-        adjustment,
-        finalReason,
-      );
+      // Call the hook function passed from parent
+      // Note: item.productId is what we use to adjust inventory
+      const result = await onAdjust(item.productId, adjustment, finalReason);
 
       if (result.success) {
-        toast.success(result.message);
+        toast.success(result.message || "Stock adjusted successfully");
         setAdjustment(0);
         setReason("purchase");
         setNotes("");
         onSuccess?.();
         onClose();
       } else {
-        toast.error(result.error || result.message);
+        toast.error(result.error || "Failed to adjust stock");
       }
     } catch (error) {
       toast.error("Failed to adjust stock");
@@ -81,21 +79,23 @@ export default function AdjustStockModal({
   };
 
   const selectedReason = REASONS.find((r) => r.value === reason);
-  const newStock = ingredient.stock + adjustment;
+  const newStock = (item.quantity || 0) + adjustment;
 
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={`Adjust Stock: ${ingredient.name}`}
+      title={`Adjust Stock: ${item.product?.name || "Item"}`}
     >
       <div className="space-y-6">
         {/* Current Stock Display */}
         <div className="bg-gray-800/50 p-4 rounded-lg text-center">
           <p className="text-gray-400 text-sm">Current Stock</p>
           <p className="text-3xl font-bold text-white">
-            {ingredient.stock}{" "}
-            <span className="text-lg text-gray-500">{ingredient.unit}</span>
+            {item.quantity}{" "}
+            <span className="text-lg text-gray-500">
+              {item.product?.unitType || "pcs"}
+            </span>
           </p>
         </div>
 
@@ -139,7 +139,9 @@ export default function AdjustStockModal({
             className={`text-2xl font-bold ${newStock < 0 ? "text-red-400" : adjustment > 0 ? "text-green-400" : adjustment < 0 ? "text-orange-400" : "text-white"}`}
           >
             {newStock}{" "}
-            <span className="text-lg text-gray-500">{ingredient.unit}</span>
+            <span className="text-lg text-gray-500">
+              {item.product?.unitType || "pcs"}
+            </span>
           </p>
           {newStock < 0 && (
             <p className="text-red-400 text-xs mt-1">

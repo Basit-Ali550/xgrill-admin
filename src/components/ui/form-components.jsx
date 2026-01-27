@@ -10,7 +10,7 @@ const FormInput = ({ label, className, ...props }) => {
   const errorText = meta.touched && meta.error ? meta.error : "";
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className="space-y-1.5">
       {label && (
         <Label
           htmlFor={props.id || props.name}
@@ -41,7 +41,7 @@ const FormTextarea = ({ label, className, ...props }) => {
   const errorText = meta.touched && meta.error ? meta.error : "";
 
   return (
-    <div className={cn("space-y-1", className)}>
+    <div className="space-y-1">
       {label && (
         <Label
           htmlFor={props.id || props.name}
@@ -73,7 +73,7 @@ const FormSelect = ({ label, children, className, ...props }) => {
   const errorText = meta.touched && meta.error ? meta.error : "";
 
   return (
-    <div className={cn("space-y-1.5", className)}>
+    <div className="space-y-1.5">
       {label && (
         <Label
           htmlFor={props.id || props.name}

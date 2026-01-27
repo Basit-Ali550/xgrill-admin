@@ -1,6 +1,5 @@
 "use client";
 
-import { useState, useEffect } from "react";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Formik, Form } from "formik";
@@ -17,6 +16,7 @@ import {
   updateIngredientAction,
 } from "@/app/actions/ingredients";
 import toast from "react-hot-toast";
+import { FormInput } from "@/components/ui/form-components";
 
 const IngredientSchema = Yup.object().shape({
   name: Yup.string().required("Name is required"),
@@ -87,35 +87,16 @@ export default function AddIngredientModal({
         onSubmit={handleSubmit}
         enableReinitialize
       >
-        {({
-          errors,
-          touched,
-          isSubmitting,
-          handleChange,
-          handleBlur,
-          values,
-        }) => (
+        {({ isSubmitting, handleChange, values }) => (
           <Form className="space-y-6">
-            {/* Ingredient Name - Hero Input */}
+            {/* Ingredient Name */}
             <div className="relative">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-500">
-                <Package size={20} />
-              </div>
-              <input
+              <FormInput
+                label="Ingredient Name"
                 name="name"
-                placeholder="Ingredient Name (e.g., Chicken Breast)"
-                value={values.name}
-                onChange={handleChange}
-                onBlur={handleBlur}
-                className={`w-full h-14 pl-12 pr-4 bg-gradient-to-r from-gray-800/80 to-gray-900/80 border-2 ${
-                  errors.name && touched.name
-                    ? "border-red-500/50 focus:border-red-500"
-                    : "border-gray-700/50 focus:border-orange-500"
-                } rounded-xl text-lg text-white placeholder:text-gray-500 focus:outline-none transition-all duration-300`}
+                placeholder="e.g. Chicken Breast"
+                className="bg-gray-800 border-gray-700 h-12"
               />
-              {errors.name && touched.name && (
-                <p className="text-red-400 text-xs mt-1 ml-1">{errors.name}</p>
-              )}
             </div>
 
             {/* Unit Selection - Card Grid */}
@@ -153,21 +134,15 @@ export default function AddIngredientModal({
                 <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                   <Beaker size={12} /> Initial Stock
                 </label>
-                <div className="flex items-baseline gap-2">
-                  <input
-                    type="number"
+                <div className="flex items-center gap-2">
+                  <FormInput
                     name="stock"
-                    value={values.stock}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className="w-full h-10 bg-transparent text-2xl font-bold text-white focus:outline-none"
+                    type="number"
                     min="0"
+                    className="h-10 text-xl font-bold bg-transparent border-0 p-0 focus:ring-0"
                   />
                   <span className="text-gray-500 text-sm">{values.unit}</span>
                 </div>
-                {errors.stock && touched.stock && (
-                  <p className="text-red-400 text-xs mt-1">{errors.stock}</p>
-                )}
               </div>
 
               {/* Cost Per Unit */}
@@ -175,23 +150,15 @@ export default function AddIngredientModal({
                 <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
                   <DollarSign size={12} /> Cost per {values.unit}
                 </label>
-                <div className="flex items-baseline gap-1">
+                <div className="flex items-center gap-1">
                   <span className="text-gray-500">Rs.</span>
-                  <input
-                    type="number"
+                  <FormInput
                     name="costPerUnit"
-                    value={values.costPerUnit}
-                    onChange={handleChange}
-                    onBlur={handleBlur}
-                    className="w-full h-10 bg-transparent text-2xl font-bold text-green-400 focus:outline-none"
+                    type="number"
                     min="0"
+                    className="h-10 text-xl font-bold bg-transparent border-0 p-0 focus:ring-0 text-green-400"
                   />
                 </div>
-                {errors.costPerUnit && touched.costPerUnit && (
-                  <p className="text-red-400 text-xs mt-1">
-                    {errors.costPerUnit}
-                  </p>
-                )}
               </div>
             </div>
 
@@ -209,14 +176,11 @@ export default function AddIngredientModal({
                     You'll receive an alert when stock falls below this level
                   </p>
                   <div className="flex items-center gap-2">
-                    <input
-                      type="number"
+                    <FormInput
                       name="lowStockThreshold"
-                      value={values.lowStockThreshold}
-                      onChange={handleChange}
-                      onBlur={handleBlur}
-                      className="w-24 h-8 px-3 bg-gray-900/50 border border-orange-500/30 rounded-lg text-white text-center focus:outline-none focus:ring-2 focus:ring-orange-500"
+                      type="number"
                       min="0"
+                      className="w-24 h-8 bg-gray-900/50 border-orange-500/30 text-center"
                     />
                     <span className="text-gray-500 text-sm">{values.unit}</span>
                   </div>
