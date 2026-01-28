@@ -7,7 +7,7 @@ import { Input } from "@/components/ui/input";
 import { useInventory } from "@/hooks/useInventory";
 import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
-import { ArrowUpDown, RefreshCw, Trash2, Edit, Search } from "lucide-react";
+import { ArrowUpDown, RefreshCw, Trash2, Edit, Search, Package, Sparkles } from "lucide-react";
 import AdjustInventoryModal from "@/components/inventory/AdjustInventoryModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 
@@ -16,6 +16,7 @@ export default function InventoryPage() {
   const [adjustingItem, setAdjustingItem] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
+  const [filterType, setFilterType] = useState("all"); // all | sale | supply
 
   const handleDelete = async () => {
     if (deleteId) {
@@ -25,11 +26,19 @@ export default function InventoryPage() {
   };
 
   const filteredInventory = useMemo(() => {
-    if (!searchQuery) return inventory;
-    return inventory.filter((item) =>
-      item.product?.name.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  }, [inventory, searchQuery]);
+    let items = inventory;
+        if (filterType === 'sale') {
+      items = items.filter((item) => !item.product?.isServiceSupply);
+    } else if (filterType === 'supply') {
+      items = items.filter((item) => item.product?.isServiceSupply);
+    }
+        if (searchQuery) {
+      items = items.filter((item) =>
+        item.product?.name.toLowerCase().includes(searchQuery.toLowerCase())
+      );
+    }
+    return items;
+  }, [inventory, searchQuery, filterType]);
 
   const columns = useMemo(() => [
     {
@@ -70,6 +79,77 @@ export default function InventoryPage() {
       cell: ({ row }) => row.original.product?.category || "N/A",
     },
     {
+      accessorKey: "product.unitType",
+      header: "Unit Type",
+      cell: ({ row }) => (
+        <span className="text-gray-300 text-nowrap">{row.original.product?.unitType || "N/A"}</span>
+      ),
+    },
+    {
+      accessorKey: "product.basePrice",
+      header: "Base Price",
+      cell: ({ row }) => {
+        const price = row.original.product?.basePrice;
+        const isSupply = row.original.product?.isServiceSupply;
+        return (
+          <span className="text-green-400 text-nowrap font-semibold">
+            {isSupply ? "N/A" : `Rs ${price?.toFixed(2) || "0.00"}`}
+          </span>
+        );
+      },
+    },
+    {
+      accessorKey: "product.createdAt",
+      header: "Created Date",
+      cell: ({ row }) => {
+        const date = row.original.product?.createdAt;
+        return (
+          <div className="text-xs text-nowrap text-gray-400">
+            {date ? new Date(date).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            }) : "N/A"}
+          </div>
+        );
+      },
+    },
+    {
+      accessorKey: "updatedAt",
+      header: "Updated Date",
+      cell: ({ row }) => {
+        const date = row.original.updatedAt;
+        return (
+          <div className="text-xs text-nowrap text-gray-400">
+            {date ? new Date(date).toLocaleDateString('en-US', { 
+              year: 'numeric', 
+              month: 'short', 
+              day: 'numeric' 
+            }) : "N/A"}
+          </div>
+        );
+      },
+    },
+    {
+      id: "type",
+      header: "Type",
+      cell: ({ row }) => {
+        const isSupply = row.original.product?.isServiceSupply;
+        return (
+          <Badge 
+            variant={isSupply ? "secondary" : "default"}
+            className={isSupply ? "bg-purple-500/20 text-purple-400" : "bg-green-500/20 text-green-400"}
+          >
+            {isSupply ? (
+              <><Sparkles size={12} className="mr-1" /> Supply</>
+            ) : (
+              <><Package size={12} className="mr-1" /> Sale</>
+            )}
+          </Badge>
+        );
+      },
+    },
+    {
       accessorKey: "quantity",
       header: ({ column }) => (
         <div className="text-center">
@@ -98,6 +178,7 @@ export default function InventoryPage() {
       header: () => <div className="text-center">Threshold</div>,
       cell: ({ row }) => <div className="text-center text-gray-500">{row.original.lowStockThreshold}</div>,
     },
+
     {
       id: "status",
       header: () => <div className="text-center">Status</div>,
@@ -183,6 +264,41 @@ export default function InventoryPage() {
               className="pl-9 bg-gray-900 border-gray-700"
             />
           </div>
+          
+          {/* Filter Tabs */}
+          <div className="flex gap-1 bg-gray-800/50 p-1 rounded-lg mx-4">
+            <button
+              onClick={() => setFilterType('all')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+                filterType === 'all'
+                  ? 'bg-orange-500 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              All
+            </button>
+            <button
+              onClick={() => setFilterType('sale')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 ${
+                filterType === 'sale'
+                  ? 'bg-green-500 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Package size={14} /> Sale Items
+            </button>
+            <button
+              onClick={() => setFilterType('supply')}
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 ${
+                filterType === 'supply'
+                  ? 'bg-purple-500 text-white'
+                  : 'text-gray-400 hover:text-white'
+              }`}
+            >
+              <Sparkles size={14} /> Supplies
+            </button>
+          </div>
+          
           <div className="flex gap-4">
              <Link href="/dashboard/inventory/add">
                <Button className="bg-orange-600 hover:bg-orange-700 text-white">

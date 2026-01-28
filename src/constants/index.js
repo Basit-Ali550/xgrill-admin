@@ -178,6 +178,42 @@ export const STATUS_OPTIONS = [
   { value: "Inactive", label: "Inactive" },
 ];
 
+export const ITEM_TYPE_OPTIONS = [
+  { value: "sale", label: "🛒 Sale Item", description: "Items sold to customers" },
+  { value: "supply", label: "🧻 Service Supply", description: "Free items (tissues, napkins)" },
+];
+export const SERVICE_SUPPLY_CATEGORIES = [
+  { value: "", label: "Select category" },
+  { value: "Tissues", label: "Tissues" },
+  { value: "Napkins", label: "Napkins" },
+  { value: "Disposable Plates", label: "Disposable Plates" },
+  { value: "Disposable Cups", label: "Disposable Cups" },
+  { value: "Disposable Spoons", label: "Disposable Spoons" },
+  { value: "Disposable Forks", label: "Disposable Forks" },
+  { value: "Straws", label: "Straws" },
+  { value: "Toothpicks", label: "Toothpicks" },
+  { value: "Paper Bags", label: "Paper Bags" },
+  { value: "Plastic Bags", label: "Plastic Bags" },
+  { value: "Food Wrapping", label: "Food Wrapping" },
+  { value: "Aluminum Foil", label: "Aluminum Foil" },
+  { value: "Takeaway Boxes", label: "Takeaway Boxes" },
+  { value: "Gloves", label: "Gloves" },
+  { value: "Cleaning Supplies", label: "Cleaning Supplies" },
+  { value: "Other Supply", label: "Other" },
+];
+export const SERVICE_SUPPLY_UNITS = [
+  { value: "", label: "Select unit" },
+  { value: "Pack", label: "Pack" },
+  { value: "Box", label: "Box" },
+  { value: "Roll", label: "Roll" },
+  { value: "Bundle", label: "Bundle" },
+  { value: "Piece", label: "Piece" },
+  { value: "Dozen", label: "Dozen" },
+  { value: "Carton", label: "Carton" },
+  { value: "Bag", label: "Bag" },
+  { value: "Set", label: "Set" },
+];
+
 
 // Helper to get status style
 export const getStatusStyle = (status) => {

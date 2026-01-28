@@ -11,10 +11,15 @@ import {
   UNIT_TYPES,
   SIZE_OPTIONS,
   STATUS_OPTIONS,
+  ITEM_TYPE_OPTIONS,
+  SERVICE_SUPPLY_CATEGORIES,
+  SERVICE_SUPPLY_UNITS,
 } from "@/constants";
+import { Package, Sparkles } from "lucide-react";
 
 // Yup validation schema
 const inventoryValidationSchema = Yup.object({
+  itemType: Yup.string().required("Item type is required"),
   itemName: Yup.string()
     .required("Item name is required")
     .min(2, "Item name must be at least 2 characters"),
@@ -23,8 +28,11 @@ const inventoryValidationSchema = Yup.object({
   unitType: Yup.string(),
   size: Yup.string(),
   sellingPrice: Yup.number()
-    .required("Selling price is required")
-    .positive("Selling price must be positive")
+    .when('itemType', {
+      is: 'sale',
+      then: (schema) => schema.required('Selling price is required').positive('Must be positive'),
+      otherwise: (schema) => schema.nullable(),
+    })
     .typeError("Selling price must be a number"),
   stock: Yup.number()
     .required("Stock quantity is required")
@@ -42,6 +50,7 @@ const inventoryValidationSchema = Yup.object({
 
 // Initial form values
 const initialValues = {
+  itemType: "sale",
   itemName: "",
   category: "",
   brand: "",
@@ -69,20 +78,25 @@ export default function AddInventoryPage() {
             "Content-Type": "application/json",
             Authorization: `Bearer ${token}`,
           },
-          body: JSON.stringify({
+          body: JSON.stringify((() => {
+            const payload = {
             name: values.itemName,
             category: values.category,
             brand: values.brand,
             unitType: values.unitType,
-            basePrice: parseFloat(values.sellingPrice) || 0,
+            basePrice: values.itemType === 'supply' ? 0 : (parseFloat(values.sellingPrice) || 0),
             size: values.size,
             isActive: values.status === "Active",
+            isServiceSupply: values.itemType === 'supply',
             expiryDate: values.expiryDate || null,
             quantity: parseInt(values.stock),
             lowStockThreshold: values.minStockAlert
               ? parseInt(values.minStockAlert)
               : 10,
-          }),
+            };
+            console.log('🚀 Sending payload:', payload);
+            return payload;
+          })()),
         }
       );
 
@@ -111,8 +125,45 @@ export default function AddInventoryPage() {
           validationSchema={inventoryValidationSchema}
           onSubmit={handleSubmit}
         >
-          {({ isSubmitting, status }) => (
+          {({ isSubmitting, status, values, setFieldValue }) => (
             <Form className="space-y-4">
+              {/* Item Type Toggle */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-400 mb-3">Item Type</label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setFieldValue('itemType', 'sale')}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-3 ${
+                      values.itemType === 'sale'
+                        ? 'bg-green-500/20 border-green-500 text-green-400'
+                        : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:border-gray-600'
+                    }`}
+                  >
+                    <Package size={24} />
+                    <div className="text-left">
+                      <div className="font-medium">Sale Item</div>
+                      <div className="text-xs opacity-70">Items sold to customers</div>
+                    </div>
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setFieldValue('itemType', 'supply')}
+                    className={`p-4 rounded-xl border-2 transition-all duration-200 flex items-center gap-3 ${
+                      values.itemType === 'supply'
+                        ? 'bg-purple-500/20 border-purple-500 text-purple-400'
+                        : 'bg-gray-800/50 border-gray-700/50 text-gray-400 hover:border-gray-600'
+                    }`}
+                  >
+                    <Sparkles size={24} />
+                    <div className="text-left">
+                      <div className="font-medium">Service Supply</div>
+                      <div className="text-xs opacity-70">Free items (tissues, napkins)</div>
+                    </div>
+                  </button>
+                </div>
+              </div>
+
               <FormInput
                 label="Item Name"
                 name="itemName"
@@ -124,37 +175,43 @@ export default function AddInventoryPage() {
                 <FormSelect
                   label="Category"
                   name="category"
-                  options={INVENTORY_CATEGORIES}
+                  options={values.itemType === 'supply' ? SERVICE_SUPPLY_CATEGORIES : INVENTORY_CATEGORIES}
                 />
 
-                <FormInput
-                  label="Brand (Optional)"
-                  name="brand"
-                  type="text"
-                  placeholder="e.g. Coca Cola"
-                />
+                {values.itemType === 'sale' && (
+                  <FormInput
+                    label="Brand (Optional)"
+                    name="brand"
+                    type="text"
+                    placeholder="e.g. Coca Cola"
+                  />
+                )}
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormSelect
                   label="Unit Type"
                   name="unitType"
-                  options={UNIT_TYPES}
+                  options={values.itemType === 'supply' ? SERVICE_SUPPLY_UNITS : UNIT_TYPES}
                 />
 
-                <FormSelect
-                  label="Size / Variant"
-                  name="size"
-                  options={SIZE_OPTIONS}
-                />
+                {values.itemType === 'sale' && (
+                  <FormSelect
+                    label="Size / Variant"
+                    name="size"
+                    options={SIZE_OPTIONS}
+                  />
+                )}
               </div>
 
-              <FormInput
-                label="Selling Price"
-                name="sellingPrice"
-                type="number"
-                placeholder="e.g., 80"
-              />
+              {values.itemType === 'sale' && (
+                <FormInput
+                  label="Selling Price"
+                  name="sellingPrice"
+                  type="number"
+                  placeholder="e.g., 80"
+                />
+              )}
 
               <div className="grid grid-cols-2 gap-4">
                 <FormInput
