@@ -13,8 +13,7 @@ import { productSchema } from "@/lib/validations";
 import { api } from "@/lib/api";
 import { useIngredients } from "@/hooks/useIngredients";
 import { Plus, X, Image as ImageIcon, Flame, DollarSign } from "lucide-react";
-import { createProductAction } from "@/app/actions/products";
-import { getIngredientsAction } from "@/app/actions/ingredients";
+
 import {
   PRODUCT_CATEGORIES,
   RECIPE_UNITS,
