@@ -99,6 +99,18 @@ export default function InventoryPage() {
       },
     },
     {
+      accessorKey: "product.purchasePrice",
+      header: "Purch. Price",
+      cell: ({ row }) => {
+        const price = row.original.product?.purchasePrice;
+        return (
+          <span className="text-orange-400 text-nowrap font-semibold">
+             Rs {price?.toFixed(2) || "0.00"}
+          </span>
+        );
+      },
+    },
+    {
       accessorKey: "product.createdAt",
       header: "Created Date",
       cell: ({ row }) => {

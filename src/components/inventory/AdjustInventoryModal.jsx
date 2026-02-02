@@ -25,6 +25,7 @@ export default function AdjustInventoryModal({
   onSuccess,
 }) {
   const [adjustment, setAdjustment] = useState(0);
+  const [newPrice, setNewPrice] = useState(0);
   const [reason, setReason] = useState("purchase");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -41,6 +42,13 @@ export default function AdjustInventoryModal({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Initialize price when item changes
+  useEffect(() => {
+    if (item) {
+      setNewPrice(item.product?.purchasePrice || 0);
+    }
+  }, [item]);
 
   if (!item) return null;
 
@@ -59,7 +67,12 @@ export default function AdjustInventoryModal({
     try {
       // Call the hook function passed from parent
       // Note: item.productId is what we use to adjust inventory
-      const result = await onAdjust(item.productId, adjustment, finalReason);
+      const result = await onAdjust(
+        item.productId,
+        adjustment,
+        finalReason,
+        newPrice,
+      );
 
       if (result.success) {
         toast.success(result.message || "Stock adjusted successfully");
@@ -127,6 +140,26 @@ export default function AdjustInventoryModal({
             >
               <Plus size={20} />
             </Button>
+          </div>
+        </div>
+
+        {/* Price Adjustment */}
+        <div className="space-y-2">
+          <label className="text-sm text-gray-400">
+            New Purchase Price (Optional)
+          </label>
+          <div className="relative">
+            <span className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 font-bold">
+              Rs
+            </span>
+            <input
+              type="number"
+              value={newPrice}
+              onChange={(e) => setNewPrice(parseFloat(e.target.value) || 0)}
+              className="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg pl-12 pr-4 text-white text-lg font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
+              placeholder="0.00"
+              min="0"
+            />
           </div>
         </div>
 

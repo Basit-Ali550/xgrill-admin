@@ -39,6 +39,10 @@ const inventoryValidationSchema = Yup.object({
     .integer("Stock must be a whole number")
     .min(0, "Stock cannot be negative")
     .typeError("Stock must be a number"),
+  purchasePrice: Yup.number()
+    .transform((value) => (isNaN(value) ? undefined : value))
+    .nullable()
+    .min(0, "Price cannot be negative"),
   minStockAlert: Yup.number()
     .integer("Minimum stock must be a whole number")
     .min(0, "Minimum stock cannot be negative")
@@ -57,6 +61,7 @@ const initialValues = {
   unitType: "",
   size: "",
   sellingPrice: "",
+  purchasePrice: "",
   stock: "",
   minStockAlert: "",
   expiryDate: "",
@@ -84,7 +89,10 @@ export default function AddInventoryPage() {
             category: values.category,
             brand: values.brand,
             unitType: values.unitType,
+            brand: values.brand,
+            unitType: values.unitType,
             basePrice: values.itemType === 'supply' ? 0 : (parseFloat(values.sellingPrice) || 0),
+            purchasePrice: values.purchasePrice ? parseFloat(values.purchasePrice) : 0,
             size: values.size,
             isActive: values.status === "Active",
             isServiceSupply: values.itemType === 'supply',
@@ -204,14 +212,22 @@ export default function AddInventoryPage() {
                 )}
               </div>
 
-              {values.itemType === 'sale' && (
+              <div className="grid grid-cols-2 gap-4">
+                {values.itemType === 'sale' && (
+                  <FormInput
+                    label="Selling Price"
+                    name="sellingPrice"
+                    type="number"
+                    placeholder="e.g., 80"
+                  />
+                )}
                 <FormInput
-                  label="Selling Price"
-                  name="sellingPrice"
+                  label="Purchase Price"
+                  name="purchasePrice"
                   type="number"
-                  placeholder="e.g., 80"
+                  placeholder="e.g., 50"
                 />
-              )}
+              </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <FormInput

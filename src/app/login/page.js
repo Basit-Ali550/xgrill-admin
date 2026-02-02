@@ -1,186 +1,201 @@
 "use client";
-import { useState, useTransition } from "react";
+import React, { useState } from "react";
+import { Formik, Form } from "formik";
+import * as Yup from "yup";
+import { FormInput } from "@/components/ui/form-components";
+import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { loginAction } from "@/app/actions/auth";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
+import { Flame, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+// Validation Schema
+const LoginSchema = Yup.object().shape({
+  email: Yup.string()
+    .email("Invalid email address")
+    .required("Email is required"),
+  password: Yup.string()
+    .min(6, "Password must be at least 6 characters")
+    .required("Password is required"),
+});
 
 export default function LoginPage() {
-  const [error, setError] = useState("");
-  const [isPending, startTransition] = useTransition();
   const router = useRouter();
+  const [isRedirecting, setIsRedirecting] = useState(false);
 
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setError("");
-    
-    // Create FormData object from the form
-    const formData = new FormData(e.currentTarget);
-    
-    startTransition(async () => {
+  const handleSubmit = async (values, { setSubmitting, setStatus }) => {
+    try {
+      // Create FormData to match your existing server action signature
+      const formData = new FormData();
+      formData.append("email", values.email);
+      formData.append("password", values.password);
+
       const result = await loginAction(null, formData);
-      
+
       if (result?.error) {
         toast.error(result.error);
-        setError(result.error);
+        setStatus(result.error);
+        setSubmitting(false);
       } else if (result?.success) {
-        // Manually update localStorage for AuthContext compatibility
+        // Handle success and storage
         localStorage.setItem("token", result.data.token);
         localStorage.setItem("user", JSON.stringify(result.data.user));
-        
+
         toast.success("Login successful! Redirecting...");
-        
-        // Use hard redirect to force full page reload so AuthContext re-reads localStorage
+        setIsRedirecting(true);
+
+        // Hard redirect for context refresh
         setTimeout(() => {
-            window.location.href = "/dashboard";
-        }, 500);
+          window.location.href = "/dashboard";
+        }, 800);
       }
-    });
+    } catch (error) {
+      console.error("Login error:", error);
+      toast.error("An unexpected error occurred.");
+      setSubmitting(false);
+    }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '16px' }}>
-      <div style={{ width: '100%', maxWidth: '400px' }}>
-        {/* Logo */}
-        <div style={{ textAlign: 'center', marginBottom: '32px' }}>
-          <div style={{ display: 'inline-flex', alignItems: 'center', gap: '12px' }}>
-            <div style={{ 
-              width: '48px', 
-              height: '48px', 
-              background: 'linear-gradient(135deg, #f97316, #dc2626)', 
-              borderRadius: '12px', 
-              display: 'flex', 
-              alignItems: 'center', 
-              justifyContent: 'center' 
-            }}>
-              <span style={{ fontSize: '24px' }}>🔥</span>
-            </div>
-            <div>
-              <h1 style={{ fontSize: '28px', fontWeight: 'bold', color: 'white', margin: 0 }}>Grill-X</h1>
-              <p style={{ color: '#9ca3af', fontSize: '14px', margin: 0 }}>Admin Dashboard</p>
-            </div>
-          </div>
-        </div>
+    <div className="flex h-screen w-full overflow-hidden bg-gray-950 font-sans text-gray-100 selection:bg-orange-500/30">
+      {/* LEFT SIDE - VIDEO BACKGROUND */}
+      <div className="relative hidden w-1/2 flex-col items-center justify-center overflow-hidden lg:flex">
+        {/* Overlay Gradient */}
+        <div className="absolute inset-0 z-10 bg-gradient-to-b from-black/60 via-transparent to-black/90" />
+        <div className="absolute inset-0 z-10 bg-orange-900/10 mix-blend-overlay" />
 
-        {/* Login Card */}
-        <div style={{ 
-          background: 'rgba(31, 41, 55, 0.7)', 
-          backdropFilter: 'blur(12px)', 
-          borderRadius: '16px', 
-          border: '1px solid rgba(75, 85, 99, 0.5)',
-          padding: '24px',
-          boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.5)'
-        }}>
-          <div style={{ textAlign: 'center', marginBottom: '24px' }}>
-            <h2 style={{ fontSize: '20px', fontWeight: '600', color: 'white', marginBottom: '8px' }}>Welcome Back</h2>
-            <p style={{ color: '#9ca3af', fontSize: '14px' }}>Sign in to access the admin panel</p>
+        {/* Video Element */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 h-full w-full object-cover opacity-60 transition-opacity duration-1000 ease-in-out"
+          style={{ filter: "contrast(1.2) saturation(1.1)" }}
+        >
+           {/* Using a high-quality stock video for BBQ/Grill ambiance */}
+           <source
+            src="https://assets.mixkit.co/videos/preview/mixkit-grilling-meat-on-barbecue-4261-large.mp4"
+            type="video/mp4"
+          />
+          Your browser does not support the video tag.
+        </video>
+
+        {/* Content over Video */}
+        <div className="relative z-20 flex max-w-lg flex-col items-center text-center">
+          <div className="mb-6 flex animate-fade-in-down items-center justify-center rounded-2xl bg-orange-600/20 p-4 backdrop-blur-md ring-1 ring-orange-500/30 transition-all duration-500 items-center justify-center">
+             <Flame className="h-12 w-12 text-orange-500 animate-pulse" />
           </div>
+          <h1 className="mb-4 text-5xl font-extrabold tracking-tight text-white drop-shadow-sm">
+            Master the <span className="text-orange-500">Grill</span>
+          </h1>
+          <p className="max-w-md text-lg text-gray-200/90 leading-relaxed">
+            Experience the ultimate admin control panel for Grill-X. Manage inventory, orders, and more with spicy efficiency.
+          </p>
           
-          <form onSubmit={handleSubmit}>
-            {error && (
-              <div style={{ 
-                padding: '12px', 
-                borderRadius: '8px', 
-                background: 'rgba(239, 68, 68, 0.2)', 
-                border: '1px solid rgba(239, 68, 68, 0.3)', 
-                color: '#f87171', 
-                fontSize: '14px',
-                marginBottom: '16px'
-              }}>
-                {error}
-              </div>
-            )}
-
-            <div style={{ marginBottom: '16px' }}>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '14px', marginBottom: '8px' }}>Email</label>
-              <input
-                type="email"
-                name="email"
-                placeholder="admin@grillx.com"
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: '#1f2937',
-                  border: '1px solid #4b5563',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '16px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <div style={{ marginBottom: '24px' }}>
-              <label style={{ display: 'block', color: '#d1d5db', fontSize: '14px', marginBottom: '8px' }}>Password</label>
-              <input
-                type="password"
-                name="password"
-                placeholder="••••••••"
-                required
-                style={{
-                  width: '100%',
-                  padding: '12px 16px',
-                  background: '#1f2937',
-                  border: '1px solid #4b5563',
-                  borderRadius: '8px',
-                  color: 'white',
-                  fontSize: '16px',
-                  outline: 'none',
-                  boxSizing: 'border-box'
-                }}
-              />
-            </div>
-
-            <button 
-              type="submit" 
-              disabled={isPending}
-              style={{
-                width: '100%',
-                padding: '14px',
-                background: '#f97316',
-                border: 'none',
-                borderRadius: '8px',
-                color: 'white',
-                fontSize: '16px',
-                fontWeight: '600',
-                cursor: isPending ? 'not-allowed' : 'pointer',
-                opacity: isPending ? 0.7 : 1,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                gap: '8px'
-              }}
-            >
-              {isPending ? (
-                <>
-                  <span style={{ 
-                    width: '16px', 
-                    height: '16px', 
-                    border: '2px solid white', 
-                    borderTopColor: 'transparent', 
-                    borderRadius: '50%', 
-                    animation: 'spin 1s linear infinite' 
-                  }} />
-                  Signing in...
-                </>
-              ) : (
-                "Sign In"
-              )}
-            </button>
-          </form>
+           {/* Glass Card Stat Example */}
+           <div className="mt-12 w-full animate-fade-in-up delay-150">
+             <div className="mx-auto max-w-xs rounded-xl border border-white/10 bg-white/5 p-4 backdrop-blur-md">
+                <div className="flex items-center gap-3">
+                   <div className="flex h-10 w-10 items-center justify-center rounded-full bg-green-500/20 text-green-400">
+                      <CheckCircle2 size={20} />
+                   </div>
+                   <div className="text-left">
+                      <p className="text-xs font-medium text-gray-400 uppercase tracking-wider">System Status</p>
+                      <p className="text-sm font-bold text-white">All Systems Operational</p>
+                   </div>
+                </div>
+             </div>
+          </div>
         </div>
-
-        <p style={{ textAlign: 'center', color: '#6b7280', fontSize: '12px', marginTop: '24px' }}>
-          Demo: admin@grillx.com / admin123
-        </p>
       </div>
-      
-      <style jsx global>{`
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
-      `}</style>
+
+      {/* RIGHT SIDE - LOGIN FORM */}
+      <div className="flex w-full flex-col items-center justify-center bg-gray-900/40 p-6 lg:w-1/2">
+        <div className="w-full max-w-md animate-in slide-in-from-right-8 duration-700 fade-in">
+          
+          <div className="mb-6 flex items-center justify-center gap-2 lg:hidden">
+              <Flame className="h-10 w-10 text-orange-500" />
+              <span className="text-3xl font-bold text-white">Grill-X</span>
+          </div>
+
+          <Card className="border-gray-800 bg-gray-900/60 backdrop-blur-xl shadow-2xl">
+             <CardHeader className="text-center space-y-2">
+                <CardTitle className="text-2xl font-bold">Welcome Back</CardTitle>
+                <CardDescription className="text-gray-400">
+                   Enter your credentials to access the admin dashboard.
+                </CardDescription>
+             </CardHeader>
+             <CardContent className="space-y-6">
+                <Formik
+                  initialValues={{ email: "", password: "" }}
+                  validationSchema={LoginSchema}
+                  onSubmit={handleSubmit}
+                >
+                  {({ isSubmitting }) => (
+                    <Form className="space-y-4">
+                      <FormInput
+                        label="Email"
+                        name="email"
+                        type="email"
+                        placeholder="admin@grillx.com"
+                        autoComplete="email"
+                      />
+                      
+                      <div className="space-y-1">
+                        <FormInput
+                          label="Password"
+                          name="password"
+                          type="password"
+                          placeholder="••••••••"
+                          autoComplete="current-password"
+                        />
+                         <div className="flex justify-end">
+                          <a href="#" className="mt-1 text-xs font-medium text-orange-500 hover:text-orange-400 hover:underline">
+                            Forgot password?
+                          </a>
+                        </div>
+                      </div>
+
+                      <button
+                        type="submit"
+                        disabled={isSubmitting || isRedirecting}
+                        className={cn(
+                          "group mt-2 flex w-full items-center justify-center gap-2 rounded-lg py-3 text-sm font-semibold text-white transition-all duration-300",
+                          isSubmitting || isRedirecting
+                            ? "bg-gray-800 cursor-not-allowed opacity-70"
+                            : "bg-gradient-to-r from-orange-600 to-red-600 hover:from-orange-500 hover:to-red-500 shadow-lg shadow-orange-900/20 hover:shadow-orange-700/30 transform hover:-translate-y-0.5"
+                        )}
+                      >
+                        {isSubmitting || isRedirecting ? (
+                          <Loader2 className="h-4 w-4 animate-spin" />
+                        ) : (
+                          <>
+                            Sign In
+                            <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+                          </>
+                        )}
+                      </button>
+                    </Form>
+                  )}
+                </Formik>
+                
+                 {/* Demo Credentials Hint */}
+                 <div className="mt-6 rounded-lg bg-gray-800/50 p-3 text-center border border-gray-700/50">
+                    <p className="text-xs text-gray-500">
+                      <span className="font-semibold text-gray-400">Demo Account:</span> admin@grillx.com / admin123
+                    </p>
+                  </div>
+             </CardContent>
+          </Card>
+
+          {/* Footer */}
+          <div className="mt-8 text-center text-xs text-gray-600">
+            <p>© 2024 Grill-X System. All rights reserved.</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

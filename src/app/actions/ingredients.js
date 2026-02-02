@@ -39,8 +39,8 @@ export async function deleteIngredientAction(id) {
 }
 
 // Adjust stock (add or subtract)
-export async function adjustStockAction(id, adjustment, reason) {
-  const result = await apiCall(() => axiosInstance.patch(`/api/v1/ingredients/${id}/adjust`, { adjustment, reason }));
+export async function adjustStockAction(id, adjustment, reason, newPrice) {
+  const result = await apiCall(() => axiosInstance.patch(`/api/v1/ingredients/${id}/adjust`, { adjustment, reason, newPrice }));
   
   if (result.success) {
     revalidatePath("/dashboard/ingredients");

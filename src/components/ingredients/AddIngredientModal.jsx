@@ -129,7 +129,8 @@ export default function AddIngredientModal({
               {/* Current Stock */}
               <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
                 <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                  <Beaker size={12} /> Initial Stock
+                  <Beaker size={12} />{" "}
+                  {isEditing ? "Current Stock" : "Initial Stock"}
                 </label>
                 <div className="flex items-center gap-2">
                   <FormInput
@@ -143,7 +144,7 @@ export default function AddIngredientModal({
               </div>
               <div className="bg-gray-800/30 rounded-xl p-4 border border-gray-700/50">
                 <label className="block text-xs font-medium text-gray-500 mb-2 flex items-center gap-1">
-                  <DollarSign size={12} /> Cost per {values.unit}
+                  <DollarSign size={12} /> Purchase Price (per {values.unit})
                 </label>
                 <div className="flex items-center gap-1">
                   <span className="text-gray-500">Rs.</span>
@@ -151,7 +152,8 @@ export default function AddIngredientModal({
                     name="costPerUnit"
                     type="number"
                     min="0"
-                    className="h-10 text-xl font-bold bg-transparent border-0 p-0 focus:ring-0 text-green-400"
+                    placeholder="0"
+                    className="h-10 bg-gray-900/50 border-gray-700 text-green-400 font-bold"
                   />
                 </div>
               </div>

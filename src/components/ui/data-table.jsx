@@ -48,7 +48,7 @@ export function DataTable({ columns, data, isLoading }) {
                       return (
                         <th
                           key={header.id}
-                          className="h-10 px-4 text-left align-middle text-[10px] font-medium text-gray-300 uppercase tracking-wider [&:has([role=checkbox])]:pr-0"
+                          className="h-10 px-4 text-nowrap text-left align-middle text-[10px] font-medium text-gray-300 uppercase tracking-wider [&:has([role=checkbox])]:pr-0"
                         >
                           {header.isPlaceholder
                             ? null

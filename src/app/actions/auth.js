@@ -11,10 +11,7 @@ export async function loginAction(prevState, formData) {
   if (!email || !password) {
     return { error: "Please provide both email and password." };
   }
-
-  // We don't use apiCall here directly because we need custom handling for the success case (setting cookies)
-  // and we want to catch errors to return a specific format to the form, not redirect on 401 (since we are logging in).
-  try {
+ try {
     const response = await axiosInstance.post("/api/v1/auth/login", { email, password });
     
     // Axios interceptor returns response.data directly

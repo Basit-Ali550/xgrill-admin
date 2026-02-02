@@ -1,11 +1,14 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useRef, useEffect, useState } from "react";
 import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
-import { Plus, Minus, ChevronDown } from "lucide-react";
+import { Plus, Minus, ChevronDown, AlertTriangle } from "lucide-react";
 import { adjustStockAction } from "@/app/actions/ingredients";
 import toast from "react-hot-toast";
+import { Formik, Form } from "formik";
+import * as Yup from "yup";
+import { FormInput } from "@/components/ui/form-components";
 
 const REASONS = [
   { value: "purchase", label: "New Purchase", icon: "📦" },
@@ -18,16 +21,31 @@ const REASONS = [
   { value: "other", label: "Other", icon: "📝" },
 ];
 
+// Validation Schema
+const AdjustStockSchema = (currentStock) =>
+  Yup.object().shape({
+    adjustment: Yup.number()
+      .required("Required")
+      .test("not-zero", "Adjustment cannot be zero", (value) => value !== 0)
+      .test(
+        "not-negative-stock",
+        "Resulting stock cannot be negative",
+        (value) => (currentStock || 0) + (value || 0) >= 0,
+      ),
+    newPrice: Yup.number()
+      .min(0, "Price cannot be negative")
+      .nullable()
+      .transform((v, o) => (o === "" ? null : v)),
+    reason: Yup.string().required("Reason is required"),
+    notes: Yup.string(),
+  });
+
 export default function AdjustStockModal({
   isOpen,
   onClose,
   ingredient,
   onSuccess,
 }) {
-  const [adjustment, setAdjustment] = useState(0);
-  const [reason, setReason] = useState("purchase");
-  const [notes, setNotes] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef(null);
 
@@ -44,30 +62,30 @@ export default function AdjustStockModal({
 
   if (!ingredient) return null;
 
-  const handleSubmit = async () => {
-    if (adjustment === 0) {
-      toast.error("Adjustment cannot be zero");
-      return;
-    }
+  const initialValues = {
+    adjustment: 0,
+    newPrice: ingredient.costPerUnit || 0,
+    reason: "purchase",
+    notes: "",
+  };
 
-    const selectedLabel = REASONS.find((r) => r.value === reason)?.label;
-    const finalReason = notes.trim()
-      ? `${selectedLabel}: ${notes.trim()}`
+  const handleSubmit = async (values, { setSubmitting, resetForm }) => {
+    const selectedLabel = REASONS.find((r) => r.value === values.reason)?.label;
+    const finalReason = values.notes.trim()
+      ? `${selectedLabel}: ${values.notes.trim()}`
       : selectedLabel;
 
-    setIsSubmitting(true);
     try {
       const result = await adjustStockAction(
         ingredient.id,
-        adjustment,
+        values.adjustment,
         finalReason,
+        values.newPrice,
       );
 
       if (result.success) {
         toast.success(result.message);
-        setAdjustment(0);
-        setReason("purchase");
-        setNotes("");
+        resetForm();
         onSuccess?.();
         onClose();
       } else {
@@ -76,12 +94,9 @@ export default function AdjustStockModal({
     } catch (error) {
       toast.error("Failed to adjust stock");
     } finally {
-      setIsSubmitting(false);
+      setSubmitting(false);
     }
   };
-
-  const selectedReason = REASONS.find((r) => r.value === reason);
-  const newStock = ingredient.stock + adjustment;
 
   return (
     <Modal
@@ -89,136 +104,218 @@ export default function AdjustStockModal({
       onClose={onClose}
       title={`Adjust Stock: ${ingredient.name}`}
     >
-      <div className="space-y-6">
-        {/* Current Stock Display */}
-        <div className="bg-gray-800/50 p-4 rounded-lg text-center">
-          <p className="text-gray-400 text-sm">Current Stock</p>
-          <p className="text-3xl font-bold text-white">
-            {ingredient.stock}{" "}
-            <span className="text-lg text-gray-500">{ingredient.unit}</span>
-          </p>
-        </div>
+      <Formik
+        initialValues={initialValues}
+        validationSchema={AdjustStockSchema(ingredient.stock)}
+        onSubmit={handleSubmit}
+        enableReinitialize
+      >
+        {({
+          values,
+          errors,
+          touched,
+          handleChange,
+          setFieldValue,
+          isSubmitting,
+        }) => {
+          const newStock = (ingredient.stock || 0) + (values.adjustment || 0);
+          const selectedReason = REASONS.find((r) => r.value === values.reason);
 
-        {/* Adjustment Controls */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">Adjustment</label>
-          <div className="flex items-center gap-3">
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-12 p-0 border-red-500/50 hover:bg-red-500/20 hover:text-red-400"
-              onClick={() => setAdjustment((prev) => prev - 1)}
-            >
-              <Minus size={20} />
-            </Button>
-
-            <input
-              type="number"
-              value={adjustment}
-              onChange={(e) => setAdjustment(parseFloat(e.target.value) || 0)}
-              className="flex-1 h-12 bg-gray-800 border border-gray-700 rounded-lg text-center text-2xl text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
-            />
-
-            <Button
-              type="button"
-              variant="outline"
-              className="h-12 w-12 p-0 border-green-500/50 hover:bg-green-500/20 hover:text-green-400"
-              onClick={() => setAdjustment((prev) => prev + 1)}
-            >
-              <Plus size={20} />
-            </Button>
-          </div>
-        </div>
-
-        {/* Preview */}
-        <div
-          className={`p-4 rounded-lg text-center ${newStock < 0 ? "bg-red-500/20 border border-red-500/50" : "bg-gray-800/30"}`}
-        >
-          <p className="text-gray-400 text-sm">New Stock After Adjustment</p>
-          <p
-            className={`text-2xl font-bold ${newStock < 0 ? "text-red-400" : adjustment > 0 ? "text-green-400" : adjustment < 0 ? "text-orange-400" : "text-white"}`}
-          >
-            {newStock}{" "}
-            <span className="text-lg text-gray-500">{ingredient.unit}</span>
-          </p>
-          {newStock < 0 && (
-            <p className="text-red-400 text-xs mt-1">
-              Stock cannot be negative
-            </p>
-          )}
-        </div>
-
-        {/* Reason Selection */}
-        <div className="space-y-2" ref={dropdownRef}>
-          <label className="text-sm text-gray-400">Reason Category</label>
-          <div className="relative">
-            <button
-              type="button"
-              onClick={() => setIsDropdownOpen(!isDropdownOpen)}
-              className="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg px-4 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 flex items-center justify-between"
-            >
-              <span className="flex items-center gap-2">
-                <span>{selectedReason?.icon}</span>
-                <span>{selectedReason?.label}</span>
-              </span>
-              <ChevronDown
-                size={18}
-                className={`text-gray-400 transition-transform ${isDropdownOpen ? "rotate-180" : ""}`}
-              />
-            </button>
-
-            {/* Dropdown List */}
-            {isDropdownOpen && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
-                {REASONS.map((r) => (
-                  <button
-                    key={r.value}
-                    type="button"
-                    onClick={() => {
-                      setReason(r.value);
-                      setIsDropdownOpen(false);
-                    }}
-                    className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700/50 transition-colors ${reason === r.value ? "bg-orange-500/20 text-orange-400" : "text-white"}`}
-                  >
-                    <span className="text-lg">{r.icon}</span>
-                    <span>{r.label}</span>
-                    {reason === r.value && (
-                      <span className="ml-auto text-orange-400">✓</span>
-                    )}
-                  </button>
-                ))}
+          return (
+            <Form className="space-y-6">
+              {/* Current Stock Display */}
+              <div className="bg-gray-800/50 p-4 rounded-lg text-center">
+                <p className="text-gray-400 text-sm">Current Stock</p>
+                <p className="text-3xl font-bold text-white">
+                  {ingredient.stock}{" "}
+                  <span className="text-lg text-gray-500">
+                    {ingredient.unit}
+                  </span>
+                </p>
               </div>
-            )}
-          </div>
-        </div>
 
-        {/* Additional Notes */}
-        <div className="space-y-2">
-          <label className="text-sm text-gray-400">
-            Additional Notes / Reason Details
-          </label>
-          <textarea
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            placeholder="E.g., Batch #1234, Dropped by accident..."
-            rows={3}
-            className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
-          />
-        </div>
-      </div>
+              {/* Adjustment Controls */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">Adjustment</label>
+                <div className="flex items-center gap-3">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-12 p-0 border-red-500/50 hover:bg-red-500/20 hover:text-red-400"
+                    onClick={() =>
+                      setFieldValue("adjustment", (values.adjustment || 0) - 1)
+                    }
+                  >
+                    <Minus size={20} />
+                  </Button>
 
-      <ModalFooter className="mt-6">
-        <Button variant="ghost" onClick={onClose} disabled={isSubmitting}>
-          Cancel
-        </Button>
-        <Button
-          onClick={handleSubmit}
-          disabled={isSubmitting || adjustment === 0 || newStock < 0}
-          className="bg-orange-600 hover:bg-orange-700"
-        >
-          {isSubmitting ? "Saving..." : "Apply Adjustment"}
-        </Button>
-      </ModalFooter>
+                  <div className="flex-1">
+                    <FormInput
+                      name="adjustment"
+                      type="number"
+                      className="h-12 bg-gray-800 border-gray-700 text-center text-2xl text-white font-bold focus:ring-orange-500"
+                      onChange={(e) => {
+                        const val = parseFloat(e.target.value);
+                        setFieldValue("adjustment", isNaN(val) ? 0 : val);
+                      }}
+                    />
+                  </div>
+
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="h-12 w-12 p-0 border-green-500/50 hover:bg-green-500/20 hover:text-green-400"
+                    onClick={() =>
+                      setFieldValue("adjustment", (values.adjustment || 0) + 1)
+                    }
+                  >
+                    <Plus size={20} />
+                  </Button>
+                </div>
+              </div>
+
+              {/* Price Adjustment */}
+              <div className="space-y-2">
+                <div className="relative">
+                  <span className="absolute left-4 top-[38px] z-10 text-gray-400 font-bold">
+                    Rs
+                  </span>
+                  <FormInput
+                    label={`New Purchase Price (per ${ingredient.unit})`}
+                    name="newPrice"
+                    type="number"
+                    placeholder="0.00"
+                    min="0"
+                    className="h-12 bg-gray-800 border-gray-700 pl-12 pr-4 text-white text-lg font-bold focus:ring-orange-500"
+                  />
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div
+                className={`p-4 rounded-lg text-center ${
+                  newStock < 0
+                    ? "bg-red-500/20 border border-red-500/50"
+                    : "bg-gray-800/30"
+                }`}
+              >
+                <p className="text-gray-400 text-sm">
+                  New Stock After Adjustment
+                </p>
+                <p
+                  className={`text-2xl font-bold ${
+                    newStock < 0
+                      ? "text-red-400"
+                      : values.adjustment > 0
+                        ? "text-green-400"
+                        : values.adjustment < 0
+                          ? "text-orange-400"
+                          : "text-white"
+                  }`}
+                >
+                  {newStock}{" "}
+                  <span className="text-lg text-gray-500">
+                    {ingredient.unit}
+                  </span>
+                </p>
+                {newStock < 0 && (
+                  <p className="text-red-400 text-xs mt-1 flex items-center justify-center gap-1">
+                    <AlertTriangle size={12} /> Stock cannot be negative
+                  </p>
+                )}
+              </div>
+
+              {/* Reason Selection */}
+              <div className="space-y-2" ref={dropdownRef}>
+                <label className="text-sm text-gray-400">Reason Category</label>
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-full h-12 bg-gray-800 border border-gray-700 rounded-lg px-4 text-white focus:outline-none focus:ring-2 focus:ring-orange-500 flex items-center justify-between"
+                  >
+                    <span className="flex items-center gap-2">
+                      <span>{selectedReason?.icon}</span>
+                      <span>{selectedReason?.label}</span>
+                    </span>
+                    <ChevronDown
+                      size={18}
+                      className={`text-gray-400 transition-transform ${
+                        isDropdownOpen ? "rotate-180" : ""
+                      }`}
+                    />
+                  </button>
+
+                  {/* Dropdown List */}
+                  {isDropdownOpen && (
+                    <div className="absolute top-full left-0 right-0 mt-1 bg-gray-800 border border-gray-700 rounded-lg shadow-xl z-50 max-h-60 overflow-y-auto">
+                      {REASONS.map((r) => (
+                        <button
+                          key={r.value}
+                          type="button"
+                          onClick={() => {
+                            setFieldValue("reason", r.value);
+                            setIsDropdownOpen(false);
+                          }}
+                          className={`w-full px-4 py-3 flex items-center gap-3 hover:bg-gray-700/50 transition-colors ${
+                            values.reason === r.value
+                              ? "bg-orange-500/20 text-orange-400"
+                              : "text-white"
+                          }`}
+                        >
+                          <span className="text-lg">{r.icon}</span>
+                          <span>{r.label}</span>
+                          {values.reason === r.value && (
+                            <span className="ml-auto text-orange-400">✓</span>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Additional Notes */}
+              <div className="space-y-2">
+                <label className="text-sm text-gray-400">
+                  Additional Notes / Reason Details
+                </label>
+                <textarea
+                  name="notes"
+                  value={values.notes}
+                  onChange={handleChange}
+                  placeholder="E.g., Batch #1234, Dropped by accident..."
+                  rows={3}
+                  className="w-full bg-gray-800 border border-gray-700 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-orange-500 resize-none"
+                />
+              </div>
+
+              <ModalFooter className="mt-6">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onClose}
+                  disabled={isSubmitting}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={
+                    isSubmitting ||
+                    values.adjustment === 0 ||
+                    newStock < 0 ||
+                    !values.reason
+                  }
+                  className="bg-orange-600 hover:bg-orange-700"
+                >
+                  {isSubmitting ? "Saving..." : "Apply Adjustment"}
+                </Button>
+              </ModalFooter>
+            </Form>
+          );
+        }}
+      </Formik>
     </Modal>
   );
 }
