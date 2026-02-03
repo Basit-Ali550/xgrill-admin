@@ -120,7 +120,15 @@ export default function ProductsPage() {
         </CardContent>
       </Card>
 
-      <AddProductModal isOpen={isAddModalOpen} onClose={() => setIsAddModalOpen(false)} onAdd={() => {}} />
+      <AddProductModal 
+        isOpen={isAddModalOpen} 
+        onClose={() => { 
+          setIsAddModalOpen(false); 
+          setEditingProduct(null); 
+        }} 
+        onAdd={() => {}} 
+        product={editingProduct}
+      />
 
       <ConfirmDialog
         isOpen={!!deleteTarget}

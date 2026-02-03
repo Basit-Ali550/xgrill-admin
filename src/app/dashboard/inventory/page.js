@@ -27,12 +27,17 @@ export default function InventoryPage() {
 
   const filteredInventory = useMemo(() => {
     let items = inventory;
-        if (filterType === 'sale') {
+    
+    // First, filter out inactive products
+    items = items.filter((item) => item.product?.isActive !== false);
+    
+    if (filterType === 'sale') {
       items = items.filter((item) => !item.product?.isServiceSupply);
     } else if (filterType === 'supply') {
       items = items.filter((item) => item.product?.isServiceSupply);
     }
-        if (searchQuery) {
+    
+    if (searchQuery) {
       items = items.filter((item) =>
         item.product?.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
