@@ -1,17 +1,53 @@
-"use client";
+"use client"
+import { useState, useEffect, useCallback } from "react";
 import { useOrders } from "@/hooks/useOrders";
 import { useInventory } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
 import { useIngredients } from "@/hooks/useIngredients";
+import { useSocket } from "@/context/SocketContext";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
+import { getDashboardStats } from "@/app/actions/dashboard";
 
 export default function DashboardPage() {
   const { orders } = useOrders();
   const { lowStockItems: productLowStock } = useInventory();
   const { ingredients } = useIngredients();
   const { products } = useProducts();
+  const { socket } = useSocket();
+  
+  const [dashboardStats, setDashboardStats] = useState({
+      dailyRevenue: 0,
+      totalInvestment: 0,
+      totalLoss: 0
+  });
+
+  const fetchStats = useCallback(async () => {
+      const res = await getDashboardStats();
+      if (res.success) {
+          setDashboardStats(res.data);
+      }
+  }, []);
+
+  useEffect(() => {
+      fetchStats();
+  }, [fetchStats]);
+
+  // Real-time listeners
+  useEffect(() => {
+    if (!socket) return;
+
+    socket.on('new_order', fetchStats);
+    socket.on('order_status_update', fetchStats);
+    socket.on('inventory_update', fetchStats);
+
+    return () => {
+      socket.off('new_order', fetchStats);
+      socket.off('order_status_update', fetchStats);
+      socket.off('inventory_update', fetchStats);
+    };
+  }, [socket, fetchStats]);
 
   // Filter low stock ingredients
   const ingredientLowStock = ingredients?.filter(
@@ -25,6 +61,9 @@ export default function DashboardPage() {
   ];
 
   const stats = [
+    { title: "Today's Revenue", value: `Rs. ${dashboardStats.dailyRevenue.toLocaleString()}`, icon: "💰", color: "#10b981", bgColor: "rgba(16, 185, 129, 0.2)" },
+    { title: "Total Investment", value: `Rs. ${Math.round(dashboardStats.totalInvestment).toLocaleString()}`, icon: "🏦", color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.2)" },
+    { title: "Total Loss (Waste)", value: `Rs. ${Math.round(dashboardStats.totalLoss).toLocaleString()}`, icon: "📉", color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
     { title: "Total Orders", value: orders?.length || 0, icon: "📋", color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
     { title: "Pending Orders", value: orders?.filter((o) => o.status === "PENDING").length || 0, icon: "⏳", color: "#facc15", bgColor: "rgba(234, 179, 8, 0.2)" },
     { title: "Total Products", value: products?.length || 0, icon: "🍔", color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },

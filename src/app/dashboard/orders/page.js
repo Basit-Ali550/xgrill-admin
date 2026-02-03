@@ -7,15 +7,24 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { useOrders } from "@/hooks/useOrders";
 import { ORDER_STATUSES } from "@/constants";
+import toast from "react-hot-toast";
 
 export default function OrdersPage() {
   const { orders, loading, updateOrderStatus } = useOrders();
 
   const handleStatusChange = async (orderId, newStatus) => {
+    // Handle both direct value and event object for compatibility
+    const status = newStatus?.target?.value || newStatus;
+    
+    console.log(`Updating order ${orderId} status to:`, status);
+    if (!status) return;
+
     try {
-      await updateOrderStatus(orderId, newStatus);
+      await updateOrderStatus(orderId, status);
+      toast.success(`Status updated to ${status}`);
     } catch (error) {
       console.error("Failed to update status:", error);
+      toast.error("Failed to update status");
     }
   };
 
@@ -81,11 +90,12 @@ export default function OrdersPage() {
                   </div>
 
                   <div className="flex items-center gap-2">
-                    <Select value={order.status} onChange={(e) => handleStatusChange(order.id, e.target.value)} className="w-40">
-                      {ORDER_STATUSES.map((status) => (
-                        <option key={status} value={status}>{status.replace(/_/g, " ")}</option>
-                      ))}
-                    </Select>
+                    <Select
+                      value={order.status}
+                      options={ORDER_STATUSES.map(s => ({ value: s, label: s.replace(/_/g, " ") }))}
+                      onChange={(e) => handleStatusChange(order.id, e)}
+                      className="w-40"
+                    />
                   </div>
                 </div>
 

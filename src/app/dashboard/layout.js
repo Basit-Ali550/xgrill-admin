@@ -14,6 +14,7 @@ import {
   MdChevronLeft,
   MdChevronRight,
   MdClose,
+  MdAddShoppingCart,
 } from "react-icons/md";
 import { GiGrainBundle } from "react-icons/gi";
 import { FaFire } from "react-icons/fa";
@@ -27,6 +28,7 @@ export const usePageTitle = () => useContext(PageTitleContext);
 const navItems = [
   { href: "/dashboard", label: "Dashboard", Icon: MdDashboard },
   { href: "/dashboard/orders", label: "Orders", Icon: MdReceipt },
+  { href: "/dashboard/orders/manual", label: "POS", Icon: MdAddShoppingCart },
   { href: "/dashboard/ingredients", label: "Ingredients", Icon: GiGrainBundle },
   { href: "/dashboard/inventory", label: "Inventory", Icon: MdInventory2 },
   { href: "/dashboard/products", label: "Products", Icon: MdFastfood },

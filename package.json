@@ -9,6 +9,7 @@
     "lint": "eslint"
   },
   "dependencies": {
+    "@radix-ui/react-scroll-area": "^1.2.10",
     "@tanstack/react-table": "^8.21.3",
     "axios": "^1.13.3",
     "class-variance-authority": "^0.7.1",

@@ -11,6 +11,16 @@ const pwaConfig = withPWA({
 const nextConfig = {
   reactStrictMode: true,
   turbopack: {},
+  images: {
+    remotePatterns: [
+      {
+        protocol: 'https',
+        hostname: 'images.unsplash.com',
+        port: '',
+        pathname: '/**',
+      },
+    ],
+  },
 };
 
 export default pwaConfig(nextConfig);
