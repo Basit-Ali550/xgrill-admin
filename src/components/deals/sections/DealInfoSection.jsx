@@ -14,13 +14,7 @@ export default function DealInfoSection({ values, setFieldValue }) {
         <Tag size={18} className="text-orange-500" />
         Deal Information
       </h3>
-      <ImageUploader
-        value={values.image}
-        onChange={(url) => setFieldValue("image", url)}
-        folder="grill-x/deals"
-        placeholder="Upload Deal Cover Image"
-        className="h-40"
-      />
+
       <FormInput label="Deal Name" name="name" placeholder="SuperSaver Combo" />
       <FormTextarea
         label="Short Description"

@@ -10,6 +10,8 @@ import { getIngredientsAction, deleteIngredientAction } from "@/app/actions/ingr
 import AddIngredientModal from "@/components/ingredients/AddIngredientModal";
 import AdjustStockModal from "@/components/ingredients/AdjustStockModal";
 import { DataTable } from "@/components/ui/data-table";
+import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import toast from "react-hot-toast";
 
 export default function IngredientsPage() {
   const [ingredients, setIngredients] = useState([]);
@@ -19,6 +21,9 @@ export default function IngredientsPage() {
   const [adjustingIngredient, setAdjustingIngredient] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Delete State
+  const [deleteId, setDeleteId] = useState(null);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   const fetchIngredients = async () => {
     const res = await getIngredientsAction();
@@ -36,10 +41,22 @@ export default function IngredientsPage() {
     loadData();
   }, []);
 
-  const handleDelete = async (id) => {
-    if (confirm("Are you sure you want to delete this ingredient?")) {
-      await deleteIngredientAction(id);
+  const handleDelete = (id) => {
+    setDeleteId(id);
+  };
+
+  const confirmDelete = async () => {
+    if (!deleteId) return;
+    setIsDeleting(true);
+    try {
+      await deleteIngredientAction(deleteId);
+      toast.success("Ingredient deleted successfully");
       fetchIngredients();
+      setDeleteId(null);
+    } catch (error) {
+       toast.error("Failed to delete ingredient");
+    } finally {
+      setIsDeleting(false);
     }
   };
 
@@ -258,6 +275,15 @@ export default function IngredientsPage() {
         onClose={() => setAdjustingIngredient(null)}
         ingredient={adjustingIngredient}
         onSuccess={fetchIngredients}
+      />
+
+      <ConfirmDialog 
+        isOpen={!!deleteId}
+        onClose={() => setDeleteId(null)}
+        onConfirm={confirmDelete}
+        title="Delete Ingredient"
+        description="Are you sure you want to delete this ingredient? This action cannot be undone."
+        isLoading={isDeleting}
       />
     </>
   );

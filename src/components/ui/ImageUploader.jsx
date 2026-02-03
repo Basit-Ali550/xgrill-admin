@@ -95,7 +95,9 @@ export default function ImageUploader({
   };
 
   return (
-    <div className={`relative ${className}`}>
+    <div
+      className={`relative ${className} ${!className.includes("h-") && !className.includes("aspect-") ? "aspect-video" : ""}`}
+    >
       {/* Hidden file input */}
       <input
         ref={inputRef}
@@ -115,8 +117,9 @@ export default function ImageUploader({
           onDragOver={handleDrag}
           onDrop={handleDrop}
           className={`
-            relative border-2 border-dashed rounded-xl cursor-pointer
-            transition-all duration-200 aspect-video
+            absolute inset-0
+            border-2 border-dashed rounded-xl cursor-pointer
+            transition-all duration-200
             flex flex-col items-center justify-center gap-2
             ${
               dragActive
@@ -143,7 +146,7 @@ export default function ImageUploader({
         </div>
       ) : (
         /* Preview with remove button */
-        <div className="relative aspect-video rounded-xl overflow-hidden border border-gray-700 bg-gray-900">
+        <div className="absolute inset-0 rounded-xl overflow-hidden border border-gray-700 bg-gray-900">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={value}
