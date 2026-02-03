@@ -20,7 +20,10 @@ export default function DashboardPage() {
   const [dashboardStats, setDashboardStats] = useState({
       dailyRevenue: 0,
       totalInvestment: 0,
-      totalLoss: 0
+      totalLoss: 0,
+      totalCustomers: 0,
+      activeDeals: 0,
+      totalDiscountGiven: 0
   });
 
   const fetchStats = useCallback(async () => {
@@ -30,12 +33,10 @@ export default function DashboardPage() {
       }
   }, []);
 
+  // Initial fetch and Real-time listeners
   useEffect(() => {
-      fetchStats();
-  }, [fetchStats]);
+    fetchStats(); // eslint-disable-line
 
-  // Real-time listeners
-  useEffect(() => {
     if (!socket) return;
 
     socket.on('new_order', fetchStats);
@@ -61,9 +62,12 @@ export default function DashboardPage() {
   ];
 
   const stats = [
-    { title: "Today's Revenue", value: `Rs. ${dashboardStats.dailyRevenue.toLocaleString()}`, icon: "💰", color: "#10b981", bgColor: "rgba(16, 185, 129, 0.2)" },
-    { title: "Total Investment", value: `Rs. ${Math.round(dashboardStats.totalInvestment).toLocaleString()}`, icon: "🏦", color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.2)" },
-    { title: "Total Loss (Waste)", value: `Rs. ${Math.round(dashboardStats.totalLoss).toLocaleString()}`, icon: "📉", color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
+    { title: "Today's Revenue", value: `Rs. ${(dashboardStats?.dailyRevenue || 0).toLocaleString()}`, icon: "💰", color: "#10b981", bgColor: "rgba(16, 185, 129, 0.2)" },
+    { title: "Total Investment", value: `Rs. ${Math.round(dashboardStats?.totalInvestment || 0).toLocaleString()}`, icon: "🏦", color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.2)" },
+    { title: "Total Loss (Waste)", value: `Rs. ${Math.round(dashboardStats?.totalLoss || 0).toLocaleString()}`, icon: "📉", color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
+    { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: "👥", color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Active Deals", value: (dashboardStats?.activeDeals || 0).toLocaleString(), icon: "🎟️", color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
+    { title: "Total Discount Given", value: `Rs. ${Math.round(dashboardStats?.totalDiscountGiven || 0).toLocaleString()}`, icon: "🏷️", color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
     { title: "Total Orders", value: orders?.length || 0, icon: "📋", color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
     { title: "Pending Orders", value: orders?.filter((o) => o.status === "PENDING").length || 0, icon: "⏳", color: "#facc15", bgColor: "rgba(234, 179, 8, 0.2)" },
     { title: "Total Products", value: products?.length || 0, icon: "🍔", color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },

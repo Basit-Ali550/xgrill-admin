@@ -3,9 +3,9 @@
 import { revalidatePath } from "next/cache";
 import axiosInstance, { apiCall } from "@/lib/api-client";
 
-export async function getProductsAction() {
+export async function getProductsAction(params = {}) {
   return apiCall(async () => {
-    return axiosInstance.get("/api/v1/products");
+    return axiosInstance.get("/api/v1/products", { params });
   });
 }
 

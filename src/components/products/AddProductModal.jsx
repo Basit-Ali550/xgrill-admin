@@ -12,7 +12,7 @@ import ImageUploader from "@/components/ui/ImageUploader";
 import { productSchema } from "@/lib/validations";
 import { api } from "@/lib/api";
 import { useIngredients } from "@/hooks/useIngredients";
-import { Plus, X, Image as ImageIcon, Flame, DollarSign } from "lucide-react";
+import { Plus, X, Image as ImageIcon } from "lucide-react";
 
 import {
   PRODUCT_CATEGORIES,
@@ -23,24 +23,20 @@ import {
 } from "@/constants";
 
 export default function AddProductModal({ isOpen, onClose, onAdd }) {
-  // Use client hook to fetch ingredients (hooks handle client-side fetching)
   const { ingredients: availableIngredients, fetchIngredients } =
     useIngredients();
+
+  // Local state for pricing calculator
+  const [profit, setProfit] = useState("");
   const [selectedSize, setSelectedSize] = useState("");
   const [variantPrice, setVariantPrice] = useState("");
 
   useEffect(() => {
     if (isOpen) {
-      // Trigger client-side fetch when modal opens
-      try {
-        fetchIngredients();
-      } catch (err) {
-        console.error("Failed to fetch ingredients:", err);
-      }
-
-      // Reset local state when modal opens
+      fetchIngredients();
       setSelectedSize("");
       setVariantPrice("");
+      setProfit("");
     }
   }, [isOpen]);
 
@@ -50,27 +46,17 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
     basePrice: "",
     category: "Burgers",
     ingredients: [],
-    recipeData: [],
+    recipeData: [], // { ingredientId, quantityRequired, unit }
     image: "",
-    // Size variants - will be populated dynamically
     variants: [],
   };
 
-  // Get sizes for a category
-  const getSizesForCategory = (category) => {
-    return SIZE_CONFIG[category] || [];
-  };
+  const getSizesForCategory = (category) => SIZE_CONFIG[category] || [];
+  const categoryHasSizes = (category) =>
+    CATEGORIES_WITH_SIZES.includes(category);
 
-  // Check if category has sizes
-  const categoryHasSizes = (category) => {
-    return CATEGORIES_WITH_SIZES.includes(category);
-  };
-
-  // Category change handler
-  const handleCategoryChange = (e, setFieldValue, values) => {
-    const newCategory = e.target.value;
-    setFieldValue("category", newCategory);
-    // Reset variants when category changes
+  const handleCategoryChange = (e, setFieldValue) => {
+    setFieldValue("category", e.target.value);
     setFieldValue("variants", []);
     setSelectedSize("");
     setVariantPrice("");
@@ -78,19 +64,15 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
 
   const handleAddVariant = (values, setFieldValue) => {
     if (!selectedSize || !variantPrice) return;
-
-    // Check if size already exists
     if (values.variants.some((v) => v.size === selectedSize)) {
-      alert("This size has already been added.");
+      alert("Size already added.");
       return;
     }
-
     const newVariant = {
       size: selectedSize,
       price: variantPrice,
-      isDefault: values.variants.length === 0, // First one is default
+      isDefault: values.variants.length === 0,
     };
-
     setFieldValue("variants", [...values.variants, newVariant]);
     setSelectedSize("");
     setVariantPrice("");
@@ -98,51 +80,60 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
 
   const handleRemoveVariant = (index, values, setFieldValue) => {
     const newVariants = values.variants.filter((_, i) => i !== index);
-
-    // If we removed the default, make the first one default (if exists)
     if (values.variants[index].isDefault && newVariants.length > 0) {
       newVariants[0].isDefault = true;
     }
-
     setFieldValue("variants", newVariants);
+  };
+
+  // --- COST CALCULATION HELPER ---
+  const calculateProductionCost = (recipeData) => {
+    return recipeData.reduce((sum, item) => {
+      const ing = availableIngredients.find((i) => i.id === item.ingredientId);
+      if (!ing) return sum;
+
+      let qty = parseFloat(item.quantityRequired) || 0;
+      const from = item.unit;
+      const to = ing.unit;
+
+      if (from !== to) {
+        if (from === "g" && to === "kg") qty /= 1000;
+        else if (from === "kg" && to === "g") qty *= 1000;
+        else if (from === "ml" && to === "l") qty /= 1000;
+        else if (from === "l" && to === "ml") qty *= 1000;
+      }
+
+      return sum + qty * (ing.costPerUnit || 0);
+    }, 0);
   };
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
     try {
+      // Cleanup Logic
       const cleanedIngredients = values.ingredients.filter(
-        (ing) => ing.trim() !== "",
+        (i) => i.trim() !== "",
       );
-
       const cleanedRecipeData = values.recipeData.filter(
-        (item) => item.ingredientId && item.quantityRequired,
+        (i) => i.ingredientId && i.quantityRequired,
       );
-
-      // Filter variants with valid prices
       const cleanedVariants = values.variants.filter(
-        (v) => v.price && parseFloat(v.price) > 0,
+        (v) => parseFloat(v.price) > 0,
       );
 
-      // Validation: If category expects sizes but none added, show error
       if (categoryHasSizes(values.category) && cleanedVariants.length === 0) {
-        alert(`Please add at least one size for ${values.category}`);
+        alert(`Please add sizes for ${values.category}`);
         setSubmitting(false);
         return;
       }
 
-      // Determine final base price
       let finalBasePrice = parseFloat(values.basePrice) || 0;
-
-      // If we have variants, the base price should be the price of the default variant
-      // or the first variant if no default is explicitly set (though logic usually enforces default)
       if (cleanedVariants.length > 0) {
-        const defaultVariant =
+        const def =
           cleanedVariants.find((v) => v.isDefault) || cleanedVariants[0];
-        if (defaultVariant) {
-          finalBasePrice = parseFloat(defaultVariant.price);
-        }
+        finalBasePrice = parseFloat(def.price);
       }
 
-      const productData = {
+      const payload = {
         name: values.name,
         description: values.description,
         basePrice: finalBasePrice,
@@ -158,23 +149,16 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
         })),
       };
 
-      try {
-        const res = await api.post("/api/v1/products", productData);
-
-        if (res?.success) {
-          if (onAdd) onAdd(res.data);
-          resetForm();
-          onClose();
-        } else {
-          console.error("Failed to add product:", res?.error || res);
-          alert(res?.error || "Failed to add product");
-        }
-      } catch (err) {
-        console.error("Error creating product:", err);
-        alert(err.message || "Error creating product");
+      const res = await api.post("/api/v1/products", payload);
+      if (res?.success) {
+        if (onAdd) onAdd(res.data);
+        resetForm();
+        onClose();
+      } else {
+        alert(res?.error || "Failed");
       }
-    } catch (error) {
-      console.error("Error adding product:", error);
+    } catch (err) {
+      alert(err.message);
     } finally {
       setSubmitting(false);
     }
@@ -184,341 +168,455 @@ export default function AddProductModal({ isOpen, onClose, onAdd }) {
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title="Create New Product"
-      className="max-w-[1200px] w-full"
+      title="Add New Product"
+      className="max-w-4xl w-full p-0"
+      noPadding={true}
     >
       <Formik
         initialValues={initialValues}
         validationSchema={productSchema}
         onSubmit={handleSubmit}
       >
-        {({ values, isSubmitting, handleChange, setFieldValue }) => (
-          <Form className="flex flex-col gap-8">
-            <div className="grid grid-cols-12 gap-8">
-              {/* Left Column: Core Details */}
-              <div className="col-span-12 lg:col-span-7 space-y-6">
-                <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <Flame className="text-orange-500" size={20} />
-                    Product Details
-                  </h3>
+        {({ values, isSubmitting, handleChange, setFieldValue }) => {
+          const productionCost = calculateProductionCost(values.recipeData);
 
-                  <div className="grid grid-cols-2 gap-4 mb-4">
-                    <FormInput
-                      label="Product Name"
-                      name="name"
-                      placeholder="e.g., Spicy Double Beef Burger"
-                      className="col-span-2"
+          return (
+            // Fixed height removed to let the Modal handle scrolling
+            <Form className="flex flex-col bg-gray-950 text-gray-200 font-sans">
+              {/* Content Area */}
+              <div className="p-6 space-y-8">
+                {/* 1. IDENTITY & IMAGE */}
+                <section className="space-y-6">
+                  {/* Image Section - Top Full Width */}
+                  <div className="w-full h-48 rounded-xl overflow-hidden border border-gray-700 bg-gray-900 group relative">
+                    <ImageUploader
+                      value={values.image}
+                      onChange={(url) => setFieldValue("image", url)}
+                      folder={IMAGE_UPLOAD_FOLDERS.PRODUCTS}
+                      className="h-full w-full object-cover"
                     />
-
-                    <FormSelect
-                      label="Category"
-                      name="category"
-                      value={values.category}
-                      onChange={(e) =>
-                        handleCategoryChange(e, setFieldValue, values)
-                      }
-                      options={PRODUCT_CATEGORIES}
-                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
-                    />
-
-                    {/* Base price - show ONLY when category has NO sizes */}
-                    {!categoryHasSizes(values.category) && (
-                      <FormInput
-                        label="Price (Rs.)"
-                        name="basePrice"
-                        type="number"
-                        placeholder="0.00"
-                        min="0"
-                      />
+                    {!values.image && (
+                      <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none bg-gray-900/50 hover:bg-gray-900/40 transition-colors">
+                        <ImageIcon size={48} className="mb-2 opacity-50" />
+                        <span className="text-sm font-medium">
+                          Click to Upload Product Image
+                        </span>
+                        <span className="text-xs text-gray-600 mt-1">
+                          Recommended size: 800x800px
+                        </span>
+                      </div>
                     )}
                   </div>
 
-                  <FormTextarea
-                    label="Description"
-                    name="description"
-                    placeholder="Describe the taste, texture, and key appeal..."
-                    rows="3"
-                  />
-                </div>
-
-                {/* Size Variants Section - Only show for categories with sizes */}
-                {categoryHasSizes(values.category) && (
-                  <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-800">
-                    <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                      <DollarSign className="text-green-500" size={20} />
-                      Size & Pricing
-                    </h3>
-
-                    {/* Input Area */}
-                    <div className="grid grid-cols-12 gap-3 mb-4 items-end bg-gray-900/40 p-3 rounded-lg border border-gray-700/50">
-                      <div className="col-span-5">
-                        <label className="text-xs text-gray-400 mb-1 block">
-                          Size
-                        </label>
-                        <select
-                          value={selectedSize}
-                          onChange={(e) => setSelectedSize(e.target.value)}
-                          className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        >
-                          <option value="">Select Size</option>
-                          {getSizesForCategory(values.category).map((size) => (
-                            <option key={size} value={size}>
-                              {size}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div className="col-span-4">
-                        <label className="text-xs text-gray-400 mb-1 block">
-                          Price
-                        </label>
-                        <input
-                          type="number"
-                          placeholder="Rs."
-                          value={variantPrice}
-                          onChange={(e) => setVariantPrice(e.target.value)}
-                          className="w-full bg-gray-800 border border-gray-600 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
-                        />
-                      </div>
-                      <div className="col-span-3">
-                        <Button
-                          type="button"
-                          onClick={() =>
-                            handleAddVariant(values, setFieldValue)
-                          }
-                          disabled={!selectedSize || !variantPrice}
-                          className="w-full bg-orange-600 hover:bg-orange-700 text-white"
-                        >
-                          Add
-                        </Button>
-                      </div>
+                  {/* Product Details */}
+                  <div className="p-5 bg-gray-900/50 border border-gray-800 rounded-lg space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <FormInput
+                        label="Product Name"
+                        name="name"
+                        placeholder="Name"
+                        className="bg-gray-900 border-gray-700 focus:border-orange-500"
+                      />
+                      <FormSelect
+                        label="Category"
+                        name="category"
+                        value={values.category}
+                        onChange={(e) => handleCategoryChange(e, setFieldValue)}
+                        options={PRODUCT_CATEGORIES}
+                        className="bg-gray-900 border-gray-700"
+                      />
                     </div>
+                    <FormTextarea
+                      label="Description"
+                      name="description"
+                      placeholder="Details..."
+                      rows="2"
+                      className="bg-gray-900 border-gray-700"
+                    />
+                  </div>
+                </section>
 
-                    {/* List of Added Variants */}
-                    <div className="space-y-2">
-                      {values.variants.length === 0 ? (
-                        <p className="text-sm text-gray-500 text-center py-2 italic">
-                          No sizes added yet.
-                        </p>
-                      ) : (
-                        values.variants.map((variant, index) => (
-                          <div
-                            key={index}
-                            className="flex items-center justify-between gap-4 p-3 bg-gray-900/50 rounded-lg border border-gray-800"
-                          >
-                            <div className="flex items-center gap-3">
-                              <span className="text-white font-medium w-24">
-                                {variant.size}
-                              </span>
-                              <span className="text-gray-400">
-                                Rs. {variant.price}
-                              </span>
-                              {variant.isDefault && (
-                                <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded ml-2">
-                                  Default
-                                </span>
-                              )}
-                            </div>
+                {/* 2. RECIPE (COSTING) */}
+                <section className="space-y-4">
+                  <div className="flex items-center justify-between px-2">
+                    <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider">
+                      Recipe & Ingredients
+                    </h3>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">
+                        Total Mfg. Cost:
+                      </span>
+                      <span className="text-xl font-mono font-bold text-orange-400">
+                        Rs. {productionCost.toFixed(2)}
+                      </span>
+                    </div>
+                  </div>
 
-                            <div className="flex items-center gap-2">
-                              {!variant.isDefault && (
-                                <Button
-                                  type="button"
-                                  size="sm"
-                                  variant="ghost"
-                                  onClick={() => {
-                                    const newVariants = values.variants.map(
-                                      (v, i) => ({
-                                        ...v,
-                                        isDefault: i === index,
-                                      }),
-                                    );
-                                    setFieldValue("variants", newVariants);
-                                  }}
-                                  className="h-8 text-xs text-gray-400 hover:text-white"
-                                >
-                                  Set Default
-                                </Button>
-                              )}
-                              <Button
-                                type="button"
-                                size="sm"
-                                variant="ghost"
-                                onClick={() =>
-                                  handleRemoveVariant(
-                                    index,
-                                    values,
-                                    setFieldValue,
-                                  )
-                                }
-                                className="h-8 w-8 p-0 text-red-400 hover:bg-red-500/10 hover:text-red-300"
-                              >
-                                <X size={16} />
-                              </Button>
+                  {/* Removed overflow-hidden to fix dropdown clipping */}
+                  <div className="bg-gray-900 border border-gray-800 rounded-lg">
+                    <FieldArray name="recipeData">
+                      {({ push, remove }) => (
+                        <div>
+                          <div className="grid grid-cols-12 gap-2 p-3 bg-gray-950 border-b border-gray-800 text-[10px] text-gray-500 uppercase font-bold">
+                            <div className="col-span-12 lg:col-span-5">
+                              Ingredient
                             </div>
+                            <div className="col-span-3">Qty</div>
+                            <div className="col-span-2">Unit</div>
+                            <div className="col-span-2 text-right">Cost</div>
                           </div>
-                        ))
-                      )}
-                    </div>
-                  </div>
-                )}
+                          <div className="p-2 space-y-2">
+                            {values.recipeData.map((item, index) => {
+                              const ing = availableIngredients.find(
+                                (i) => i.id === item.ingredientId,
+                              );
+                              let qty = parseFloat(item.quantityRequired) || 0;
+                              // Unit conversion for display
+                              if (ing && ing.unit && item.unit !== ing.unit) {
+                                if (item.unit === "g" && ing.unit === "kg")
+                                  qty /= 1000;
+                                else if (item.unit === "kg" && ing.unit === "g")
+                                  qty *= 1000;
+                                else if (item.unit === "ml" && ing.unit === "l")
+                                  qty /= 1000;
+                                else if (item.unit === "l" && ing.unit === "ml")
+                                  qty *= 1000;
+                              }
+                              const cost = qty * (ing?.costPerUnit || 0);
 
-                {/* Recipe Section */}
-                <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-800">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-white flex items-center gap-2">
-                      <span className="text-green-500">🥦</span> Recipe &
-                      Ingredients
-                    </h3>
-                  </div>
-
-                  <FieldArray name="recipeData">
-                    {({ push, remove }) => (
-                      <div className="space-y-3">
-                        {availableIngredients.length === 0 ? (
-                          <p className="text-sm text-gray-500">
-                            No ingredients available. Add some in the
-                            Ingredients page first.
-                          </p>
-                        ) : (
-                          <div className="space-y-3">
-                            {values.recipeData &&
-                              values.recipeData.map((item, index) => (
+                              return (
                                 <div
                                   key={index}
-                                  className="grid grid-cols-12 gap-2 group items-end pb-2 border-b border-gray-800 last:border-0"
+                                  className="grid grid-cols-12 gap-2 items-center"
                                 >
-                                  <div className="col-span-5">
+                                  <div className="col-span-12 lg:col-span-5">
                                     <FormSelect
-                                      label="Ingredient"
                                       name={`recipeData[${index}].ingredientId`}
-                                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
-                                      placeholder="Select Ingredient"
+                                      className="bg-gray-800 border-transparent text-xs h-8"
+                                      // UPDATED: Include unit in label
                                       options={availableIngredients.map(
-                                        (ing) => ({
-                                          label: `${ing.name} (stored: ${ing.unit})`,
-                                          value: ing.id,
+                                        (i) => ({
+                                          label: `${i.name} (${i.unit})`,
+                                          value: i.id,
                                         }),
                                       )}
                                     />
                                   </div>
                                   <div className="col-span-3">
-                                    <label className="text-xs text-gray-500 mb-1 block">
-                                      Qty
-                                    </label>
-                                    <input
+                                    <FormInput
                                       name={`recipeData[${index}].quantityRequired`}
-                                      value={item.quantityRequired || ""}
-                                      onChange={handleChange}
-                                      placeholder="0"
                                       type="number"
-                                      min="0"
-                                      className="w-full bg-gray-900 border border-gray-700 rounded-md px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                                      placeholder="0"
+                                      className="bg-gray-800 border-transparent h-8 text-xs px-2"
                                     />
                                   </div>
                                   <div className="col-span-2">
-                                    <FormSelect
-                                      label="Unit"
+                                    <select
                                       name={`recipeData[${index}].unit`}
-                                      className="bg-gray-900 border-gray-700 focus:ring-orange-500"
-                                      options={RECIPE_UNITS}
-                                    />
-                                  </div>
-                                  <div className="col-span-2 flex justify-end pb-1">
-                                    <Button
-                                      type="button"
-                                      variant="ghost"
-                                      onClick={() => remove(index)}
-                                      className="text-gray-500 hover:text-red-500 hover:bg-red-500/10 transition-colors h-10 w-10 p-0"
+                                      onChange={handleChange}
+                                      value={item.unit}
+                                      className="w-full bg-gray-800 border-transparent rounded text-xs h-8 px-1 text-gray-300"
                                     >
-                                      <X size={16} />
-                                    </Button>
+                                      {(() => {
+                                        if (!ing || !ing.unit)
+                                          return RECIPE_UNITS.map((u) => (
+                                            <option
+                                              key={u.value}
+                                              value={u.value}
+                                            >
+                                              {u.label}
+                                            </option>
+                                          ));
+                                        const mass = ["g", "kg"],
+                                          vol = ["ml", "l"];
+                                        let opts = RECIPE_UNITS;
+                                        if (mass.includes(ing.unit))
+                                          opts = RECIPE_UNITS.filter((u) =>
+                                            mass.includes(u.value),
+                                          );
+                                        else if (vol.includes(ing.unit))
+                                          opts = RECIPE_UNITS.filter((u) =>
+                                            vol.includes(u.value),
+                                          );
+                                        else
+                                          opts = [
+                                            {
+                                              label: ing.unit,
+                                              value: ing.unit,
+                                            },
+                                          ];
+                                        return opts.map((u) => (
+                                          <option key={u.value} value={u.value}>
+                                            {u.label}
+                                          </option>
+                                        ));
+                                      })()}
+                                    </select>
+                                  </div>
+                                  <div className="col-span-2 flex justify-end gap-2 items-center">
+                                    <span className="text-xs font-mono text-gray-400">
+                                      {cost > 0 ? cost.toFixed(1) : "-"}
+                                    </span>
+                                    <button
+                                      type="button"
+                                      onClick={() => remove(index)}
+                                      className="text-gray-600 hover:text-red-400"
+                                    >
+                                      <X size={14} />
+                                    </button>
                                   </div>
                                 </div>
-                              ))}
+                              );
+                            })}
+                            <Button
+                              type="button"
+                              variant="ghost"
+                              size="sm"
+                              onClick={() =>
+                                push({
+                                  ingredientId: "",
+                                  quantityRequired: "",
+                                  unit: "g",
+                                })
+                              }
+                              className="w-full text-xs border border-dashed border-gray-700 text-gray-500 hover:text-blue-400 mt-2"
+                            >
+                              + Add Ingredient
+                            </Button>
                           </div>
-                        )}
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() =>
-                            push({
-                              ingredientId: "",
-                              quantityRequired: "",
-                              unit: "",
-                            })
-                          }
-                          className="w-full border-dashed border-gray-600 hover:border-orange-500 hover:text-orange-500"
-                          disabled={availableIngredients.length === 0}
-                        >
-                          <Plus size={16} className="mr-2" /> Add Ingredient to
-                          Recipe
-                        </Button>
-                      </div>
-                    )}
-                  </FieldArray>
-                </div>
-              </div>
+                        </div>
+                      )}
+                    </FieldArray>
+                  </div>
+                </section>
 
-              {/* Right Column: Image */}
-              <div className="col-span-12 lg:col-span-5 space-y-6">
-                {/* Image Upload */}
-                <div className="bg-gray-800/50 p-6 rounded-xl border border-gray-800">
-                  <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                    <ImageIcon className="text-blue-500" size={20} />
-                    Product Image
+                {/* 3. PRICING & PROFIT */}
+                <section className="bg-gray-900 border border-gray-800 rounded-lg p-5">
+                  <h3 className="text-sm font-bold text-gray-400 uppercase tracking-wider mb-4">
+                    Pricing & Profit
                   </h3>
 
-                  <ImageUploader
-                    value={values.image}
-                    onChange={(url) => setFieldValue("image", url)}
-                    folder={IMAGE_UPLOAD_FOLDERS.PRODUCTS}
-                    placeholder="Click to upload or drag and drop"
-                  />
+                  {categoryHasSizes(values.category) ? (
+                    // RESTORED PREMIUM LAYOUT FOR VARIANTS WITH PROFIT CALC
+                    <div className="space-y-3">
+                      <div className="flex items-center justify-between text-sm text-gray-400">
+                        <span>Size Variants</span>
+                        <div className="flex items-center gap-2">
+                          <span className="text-[10px] uppercase tracking-wider">
+                            Mfg Cost:{" "}
+                            <span className="text-orange-400 font-mono">
+                              Rs.{productionCost.toFixed(0)}
+                            </span>
+                          </span>
+                        </div>
+                      </div>
 
-                  <p className="text-xs text-gray-500 mt-3">
-                    Upload high-quality product images (max 10MB)
-                  </p>
-                </div>
+                      {/* Variant Entry Row */}
+                      <div className="grid grid-cols-12 gap-2 items-end">
+                        {/* Size */}
+                        <div className="col-span-4">
+                          <label className="text-[10px] text-gray-500 mb-1 block">
+                            Size
+                          </label>
+                          <select
+                            className="w-full bg-gray-800 border-gray-700 rounded-lg text-sm px-3 py-2 text-white focus:ring-orange-500 focus:border-orange-500"
+                            value={selectedSize}
+                            onChange={(e) => setSelectedSize(e.target.value)}
+                          >
+                            <option value="">Select</option>
+                            {getSizesForCategory(values.category).map((s) => (
+                              <option key={s} value={s}>
+                                {s}
+                              </option>
+                            ))}
+                          </select>
+                        </div>
 
-                {/* Info Card */}
-                <div className="bg-gradient-to-br from-orange-500/10 to-red-500/10 p-6 rounded-xl border border-orange-500/20">
-                  <h4 className="text-white font-medium mb-2">💡 Tip</h4>
-                  <p className="text-sm text-gray-400">
-                    Products are menu items that are made from ingredients.
-                    Stock is tracked at the ingredient level, not the product
-                    level.
-                  </p>
-                </div>
+                        {/* Profit */}
+                        <div className="col-span-3">
+                          <label className="text-[10px] text-blue-400 mb-1 block">
+                            Profit
+                          </label>
+                          <input
+                            type="number"
+                            className="w-full bg-gray-800 border-blue-500/30 rounded-lg px-3 py-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
+                            placeholder="Profit"
+                            value={profit} // Reusing the 'profit' state usually used for single items, or we can make a new one?
+                            // Actually, let's use a temp local state for variant entry if 'profit' is bound to the single item view?
+                            // 'profit' state is defined at top level. We can reuse it since only one mode is active at a time.
+                            onChange={(e) => {
+                              const p = parseFloat(e.target.value) || 0;
+                              setProfit(e.target.value);
+                              setVariantPrice((productionCost + p).toFixed(0));
+                            }}
+                          />
+                        </div>
+
+                        {/* Price */}
+                        <div className="col-span-3">
+                          <label className="text-[10px] text-green-500 mb-1 block">
+                            Price
+                          </label>
+                          <div className="relative">
+                            <span className="absolute left-2 top-2 text-gray-500 text-xs">
+                              Rs.
+                            </span>
+                            <input
+                              type="number"
+                              className="w-full bg-gray-800 border-green-500/30 rounded-lg pl-6 pr-2 py-2 text-sm text-white focus:ring-green-500 focus:border-green-500 font-bold"
+                              placeholder="0"
+                              value={variantPrice}
+                              onChange={(e) => {
+                                const price = parseFloat(e.target.value) || 0;
+                                setVariantPrice(e.target.value);
+                                setProfit((price - productionCost).toFixed(0));
+                              }}
+                            />
+                          </div>
+                        </div>
+
+                        {/* Add Button */}
+                        <div className="col-span-2">
+                          <Button
+                            type="button"
+                            className="w-full bg-gray-700 hover:bg-gray-600 text-white"
+                            onClick={() => {
+                              handleAddVariant(values, setFieldValue);
+                              setProfit(""); // Reset profit after add
+                            }}
+                            disabled={!selectedSize || !variantPrice}
+                          >
+                            <Plus size={16} />
+                          </Button>
+                        </div>
+                      </div>
+
+                      {/* Variants List */}
+                      <div className="space-y-2 mt-2">
+                        {values.variants.map((v, i) => {
+                          // Calc implied profit for display
+                          const impliedProfit = (
+                            v.price - productionCost
+                          ).toFixed(0);
+                          return (
+                            <div
+                              key={i}
+                              className="flex justify-between items-center bg-gray-800/40 px-3 py-2 rounded border border-gray-700/50"
+                            >
+                              <div className="flex items-center gap-3">
+                                <span className="text-white font-medium text-sm">
+                                  {v.size}
+                                </span>
+                                <span className="text-[10px] text-gray-500">
+                                  (Profit:{" "}
+                                  <span
+                                    className={
+                                      impliedProfit >= 0
+                                        ? "text-green-500"
+                                        : "text-red-500"
+                                    }
+                                  >
+                                    {impliedProfit}
+                                  </span>
+                                  )
+                                </span>
+                                {v.isDefault && (
+                                  <span className="text-[10px] bg-orange-500/20 text-orange-400 px-1.5 py-0.5 rounded">
+                                    Default
+                                  </span>
+                                )}
+                              </div>
+                              <div className="flex items-center gap-3">
+                                <span className="text-green-400 font-mono font-bold">
+                                  Rs. {v.price}
+                                </span>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    handleRemoveVariant(
+                                      i,
+                                      values,
+                                      setFieldValue,
+                                    )
+                                  }
+                                  className="text-gray-500 hover:text-red-400"
+                                >
+                                  <X size={14} />
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 gap-6 items-end">
+                      {/* A. Mfg Cost */}
+                      <div>
+                        <label className="text-xs text-gray-500 block mb-1">
+                          Mfg. Cost
+                        </label>
+                        <div className="bg-gray-800/50 border border-gray-700 rounded-lg px-3 py-2 text-gray-400 font-mono text-lg h-[46px] flex items-center">
+                          {productionCost.toFixed(0)}
+                        </div>
+                      </div>
+
+                      {/* B. Profit Input */}
+                      <div>
+                        <FormInput
+                          label="+ Your Profit"
+                          name="profit"
+                          type="number"
+                          value={profit}
+                          placeholder="Add"
+                          onChange={(e) => {
+                            const p = parseFloat(e.target.value) || 0;
+                            setProfit(e.target.value);
+                            setFieldValue(
+                              "basePrice",
+                              (productionCost + p).toFixed(0),
+                            );
+                          }}
+                          className="bg-gray-800 border-blue-500/30 focus:border-blue-500 text-white font-mono text-lg font-bold"
+                        />
+                      </div>
+
+                      {/* C. Final Price */}
+                      <div>
+                        <FormInput
+                          label="= Selling Price"
+                          name="basePrice"
+                          type="number"
+                          value={values.basePrice}
+                          onChange={(e) => {
+                            handleChange(e);
+                            const price = parseFloat(e.target.value) || 0;
+                            setProfit((price - productionCost).toFixed(0));
+                          }}
+                          className="bg-gray-950 border-green-500/50 text-green-400 font-mono text-lg font-bold"
+                        />
+                      </div>
+                    </div>
+                  )}
+                </section>
               </div>
-            </div>
 
-            <ModalFooter className="bg-gray-900/50 mt-0 py-4 px-8 -mx-6 -mb-6 border-t border-gray-800 flex justify-between items-center">
-              <div className="text-sm text-gray-500">
-                Ensure all details are correct before saving.
-              </div>
-              <div className="flex gap-3">
-                <Button
-                  type="button"
-                  variant="ghost"
-                  onClick={onClose}
-                  disabled={isSubmitting}
-                  className="hover:bg-gray-800"
-                >
+              {/* FOOTER */}
+              <div className="p-4 bg-gray-900 border-t border-gray-800 flex justify-end gap-3">
+                <Button type="button" variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>
                 <Button
                   type="submit"
-                  className="bg-linear-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-lg shadow-orange-500/20 px-8"
                   disabled={isSubmitting}
+                  className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg"
                 >
-                  {isSubmitting ? "Creating Product..." : "Create Product"}
+                  {isSubmitting ? "Saving..." : "Create Product"}
                 </Button>
               </div>
-            </ModalFooter>
-          </Form>
-        )}
+            </Form>
+          );
+        }}
       </Formik>
     </Modal>
   );

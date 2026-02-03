@@ -3,7 +3,7 @@ import * as React from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const Modal = ({ isOpen, onClose, title, children, className }) => {
+const Modal = ({ isOpen, onClose, title, children, className, noPadding }) => {
   if (!isOpen) return null;
 
   return (
@@ -29,7 +29,14 @@ const Modal = ({ isOpen, onClose, title, children, className }) => {
           </Button>
         </div>
 
-        <div className="overflow-y-auto p-6 custom-scrollbar">{children}</div>
+        <div
+          className={cn(
+            "overflow-y-auto custom-scrollbar",
+            !noPadding && "p-6",
+          )}
+        >
+          {children}
+        </div>
       </div>
     </div>
   );
