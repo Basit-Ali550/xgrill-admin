@@ -16,7 +16,8 @@ import {
   Printer,
   Ban,
   Check,
-  Filter
+  Filter,
+  Flame
 } from "lucide-react";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { DatePicker, ConfigProvider, theme } from 'antd';
+import dayjs from 'dayjs';
+
+const { RangePicker } = DatePicker;
 
 export default function OrdersPage() {
   const { orders, loading, updateOrderStatus } = useOrders();
@@ -43,6 +48,19 @@ export default function OrdersPage() {
   const [activeStatus, setActiveStatus] = useState("ALL");
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
+  
+  // Date range filter - default to today
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+  
+  const [expandedDeals, setExpandedDeals] = useState({}); // Track expanded deal items
+
+  // Toggle deal expansion
+  const toggleDealExpand = (orderId, itemIdx) => {
+    const key = `${orderId}-${itemIdx}`;
+    setExpandedDeals(prev => ({ ...prev, [key]: !prev[key] }));
+  };
 
   // Voice Notification Logic
   useEffect(() => {
@@ -119,9 +137,26 @@ export default function OrdersPage() {
       );
     }
 
+    // Filter by Date Range
+    if (startDate || endDate) {
+      result = result.filter(order => {
+        const orderDate = new Date(order.createdAt);
+        const orderDateStr = orderDate.toISOString().split('T')[0];
+        
+        if (startDate && endDate) {
+          return orderDateStr >= startDate && orderDateStr <= endDate;
+        } else if (startDate) {
+          return orderDateStr >= startDate;
+        } else if (endDate) {
+          return orderDateStr <= endDate;
+        }
+        return true;
+      });
+    }
+
     // Sort by Date (Newest First)
     return result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
-  }, [orders, activeStatus, searchQuery]);
+  }, [orders, activeStatus, searchQuery, startDate, endDate]);
 
   // Status Change Handler
   const handleStatusChange = async (orderId, newStatus) => {
@@ -181,6 +216,44 @@ export default function OrdersPage() {
               className="w-full bg-gray-800 border border-gray-700 rounded-lg pl-9 pr-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-blue-500/50 transition-all placeholder:text-gray-500"
             />
           </div>
+
+          {/* Date Range Filter - Ant Design RangePicker */}
+          <ConfigProvider
+            theme={{
+              algorithm: theme.darkAlgorithm,
+              token: {
+                colorPrimary: '#3b82f6',
+                colorBgContainer: '#1f2937',
+                colorBorder: '#374151',
+                colorText: '#fff',
+                colorTextPlaceholder: '#9ca3af',
+              },
+            }}
+          >
+            <RangePicker
+              value={[
+                startDate ? dayjs(startDate) : null,
+                endDate ? dayjs(endDate) : null
+              ]}
+              onChange={(dates) => {
+                if (dates) {
+                  setStartDate(dates[0]?.format('YYYY-MM-DD') || '');
+                  setEndDate(dates[1]?.format('YYYY-MM-DD') || '');
+                } else {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}
+              allowClear
+              format="YYYY-MM-DD"
+              placeholder={['Start Date', 'End Date']}
+              style={{ 
+                background: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+              }}
+              className="!rounded-lg"
+            />
+          </ConfigProvider>
 
           {/* Status Filter Dropdown */}
           <div className="w-full sm:w-48">
@@ -269,20 +342,62 @@ export default function OrdersPage() {
                   <div className="flex items-center gap-2 text-xs font-bold text-gray-500 uppercase tracking-wider mb-2">
                     <ShoppingBag className="w-3 h-3" /> Order Items ({order.items?.length})
                   </div>
-                  <div className="space-y-2 max-h-[160px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-800">
-                    {order.items?.map((item, idx) => (
-                      <div key={idx} className="flex justify-between items-start text-sm group/item p-2 rounded hover:bg-gray-800/50 transition-colors">
-                        <div className="flex gap-3">
-                          <span className="font-bold text-blue-400 whitespace-nowrap">{item.quantity}x</span>
-                          <div>
-                            <span className="text-gray-200 block font-medium">{item.product?.name}</span>
+                  <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-gray-800">
+                    {order.items?.map((item, idx) => {
+                      const itemName = item.product?.name || item.deal?.name || 'Unknown Item';
+                      const isDeal = !!item.deal;
+                      const dealProducts = item.deal?.productNames || [];
+                      const dealKey = `${order.id}-${idx}`;
+                      const isExpanded = expandedDeals[dealKey];
+                      
+                      return (
+                        <div key={idx} className="text-sm group/item p-2 rounded hover:bg-gray-800/50 transition-colors">
+                          <div className="flex justify-between items-start">
+                            <div className="flex gap-3">
+                              <span className="font-bold text-blue-400 whitespace-nowrap">{item.quantity}x</span>
+                              <div>
+                                <div 
+                                  className={cn(
+                                    "flex items-center gap-2 flex-wrap",
+                                    isDeal && dealProducts.length > 0 && "cursor-pointer"
+                                  )}
+                                  onClick={() => isDeal && dealProducts.length > 0 && toggleDealExpand(order.id, idx)}
+                                >
+                                  <span className="text-gray-200 font-medium">{itemName}</span>
+                                  {isDeal && (
+                                    <>
+                                      <span className="inline-flex items-center gap-1 bg-orange-500/20 text-orange-400 text-[10px] px-1.5 py-0.5 rounded font-bold">
+                                        <Flame className="w-2.5 h-2.5" /> DEAL
+                                      </span>
+                                      {/* Small dot indicator for expandable deals */}
+                                      {dealProducts.length > 0 && (
+                                        <span className="w-[5px] h-[5px] rounded-full bg-orange-400 animate-pulse" title="Click to see items" />
+                                      )}
+                                    </>
+                                  )}
+                                </div>
+                                {/* Show products included in the deal - only when expanded */}
+                                {isDeal && dealProducts.length > 0 && isExpanded && (
+                                  <div className="mt-1.5 pl-1 border-l-2 border-orange-500/30 animate-in slide-in-from-top-2 duration-200">
+                                    <p className="text-[10px] text-gray-500 uppercase font-bold mb-1">Includes:</p>
+                                    <div className="flex flex-wrap gap-1">
+                                      {dealProducts.map((productName, pIdx) => (
+                                        <span key={pIdx} className="text-xs text-gray-400 bg-gray-800 px-1.5 py-0.5 rounded">
+                                          • {productName}
+                                        </span>
+                                      ))}
+                                    </div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                            <span className="text-gray-500 font-medium whitespace-nowrap ml-2">
+                                {formatPrice(item.price * item.quantity)}
+                            </span>
                           </div>
                         </div>
-                        <span className="text-gray-500 font-medium whitespace-nowrap">
-                            {formatPrice(item.price * item.quantity)}
-                        </span>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
                   {order.notes && (
                     <div className="mt-3 text-xs bg-yellow-500/10 text-yellow-500 p-3 rounded-lg border border-yellow-500/20 flex gap-2">
