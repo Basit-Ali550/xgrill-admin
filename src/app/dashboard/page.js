@@ -9,6 +9,25 @@ import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getDashboardStats } from "@/app/actions/dashboard";
+import { DatePicker, ConfigProvider, theme } from 'antd';
+import dayjs from 'dayjs';
+import { 
+  DollarSign, 
+  Factory, 
+  TrendingUp, 
+  Wallet, 
+  TrendingDown, 
+  ArrowDownToLine, 
+  Warehouse, 
+  Tag, 
+  Users, 
+  Ticket, 
+  ClipboardList, 
+  Package, 
+  AlertTriangle 
+} from "lucide-react";
+
+const { RangePicker } = DatePicker;
 
 export default function DashboardPage() {
   const { orders } = useOrders();
@@ -17,9 +36,18 @@ export default function DashboardPage() {
   const { products } = useProducts();
   const { socket } = useSocket();
   
+  // Date range filter - default to today
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+
   const [dashboardStats, setDashboardStats] = useState({
-      dailyRevenue: 0,
-      totalInvestment: 0,
+      revenue: 0,
+      cogs: 0,
+      grossProfit: 0,
+      netProfit: 0,
+      investmentAdded: 0,
+      currentInvestment: 0,
       totalLoss: 0,
       totalCustomers: 0,
       activeDeals: 0,
@@ -27,11 +55,11 @@ export default function DashboardPage() {
   });
 
   const fetchStats = useCallback(async () => {
-      const res = await getDashboardStats();
+      const res = await getDashboardStats(startDate, endDate);
       if (res.success) {
           setDashboardStats(res.data);
       }
-  }, []);
+  }, [startDate, endDate]);
 
   // Initial fetch and Real-time listeners
   useEffect(() => {
@@ -62,22 +90,75 @@ export default function DashboardPage() {
   ];
 
   const stats = [
-    { title: "Today's Revenue", value: `Rs. ${(dashboardStats?.dailyRevenue || 0).toLocaleString()}`, icon: "💰", color: "#10b981", bgColor: "rgba(16, 185, 129, 0.2)" },
-    { title: "Total Investment", value: `Rs. ${Math.round(dashboardStats?.totalInvestment || 0).toLocaleString()}`, icon: "🏦", color: "#8b5cf6", bgColor: "rgba(139, 92, 246, 0.2)" },
-    { title: "Total Loss (Waste)", value: `Rs. ${Math.round(dashboardStats?.totalLoss || 0).toLocaleString()}`, icon: "📉", color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
-    { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: "👥", color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
-    { title: "Active Deals", value: (dashboardStats?.activeDeals || 0).toLocaleString(), icon: "🎟️", color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
-    { title: "Total Discount Given", value: `Rs. ${Math.round(dashboardStats?.totalDiscountGiven || 0).toLocaleString()}`, icon: "🏷️", color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
-    { title: "Total Orders", value: orders?.length || 0, icon: "📋", color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
-    { title: "Pending Orders", value: orders?.filter((o) => o.status === "PENDING").length || 0, icon: "⏳", color: "#facc15", bgColor: "rgba(234, 179, 8, 0.2)" },
-    { title: "Total Products", value: products?.length || 0, icon: "🍔", color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },
-    { title: "Low Stock Items", value: allLowStock.length, icon: "⚠️", color: "#f87171", bgColor: "rgba(239, 68, 68, 0.2)" },
+    // Financials
+    { 
+      title: startDate === endDate && startDate === today ? "Today's Revenue" : "Revenue", 
+      value: `Rs. ${(dashboardStats?.revenue || 0).toLocaleString()}`, 
+      icon: DollarSign, 
+      color: "#10b981", 
+      bgColor: "rgba(16, 185, 129, 0.2)" 
+    },
+    { title: "COGS (Product Cost)", value: `Rs. ${Math.round(dashboardStats?.cogs || 0).toLocaleString()}`, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
+    { title: "Total Profit", value: `Rs. ${Math.round(dashboardStats?.netProfit || 0).toLocaleString()}`, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
+    
+    // Inventory & Stock
+    { title: "Investment Added", value: `Rs. ${Math.round(dashboardStats?.investmentAdded || 0).toLocaleString()}`, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Current Stock Value", value: `Rs. ${Math.round(dashboardStats?.currentInvestment || 0).toLocaleString()}`, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
+    { title: "Loss (Waste)", value: `Rs. ${Math.round(dashboardStats?.totalLoss || 0).toLocaleString()}`, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
+    { title: "Discount Given", value: `Rs. ${Math.round(dashboardStats?.totalDiscountGiven || 0).toLocaleString()}`, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
+    
+    // Operations
+    { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: Users, color: "#14b8a6", bgColor: "rgba(20, 184, 166, 0.2)" },
+    { title: "Active Deals", value: (dashboardStats?.activeDeals || 0).toLocaleString(), icon: Ticket, color: "#d946ef", bgColor: "rgba(217, 70, 239, 0.2)" },
+    { title: "Total Orders", value: orders?.length || 0, icon: ClipboardList, color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Total Products", value: products?.length || 0, icon: Package, color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },
+    { title: "Low Stock Items", value: allLowStock.length, icon: AlertTriangle, color: "#f87171", bgColor: "rgba(239, 68, 68, 0.2)" },
   ];
 
   const recentOrders = orders?.slice(0, 5) || [];
 
   return (
     <>
+      {/* Date Filter Header */}
+      <div className="flex justify-end mb-6">
+        <ConfigProvider
+          theme={{
+            algorithm: theme.darkAlgorithm,
+            token: {
+              colorPrimary: '#3b82f6',
+              colorBgContainer: '#1f2937',
+              colorBorder: '#374151',
+              colorText: '#fff',
+              colorTextPlaceholder: '#9ca3af',
+            },
+          }}
+        >
+          <RangePicker
+            value={[
+              startDate ? dayjs(startDate) : null,
+              endDate ? dayjs(endDate) : null
+            ]}
+            onChange={(dates) => {
+              if (dates) {
+                setStartDate(dates[0]?.format('YYYY-MM-DD') || '');
+                setEndDate(dates[1]?.format('YYYY-MM-DD') || '');
+              } else {
+                setStartDate('');
+                setEndDate('');
+              }
+            }}
+            allowClear
+            format="YYYY-MM-DD"
+            placeholder={['Start Date', 'End Date']}
+            style={{ 
+              background: 'rgba(59, 130, 246, 0.1)',
+              borderColor: 'rgba(59, 130, 246, 0.3)',
+            }}
+            className="rounded-lg!"
+          />
+        </ConfigProvider>
+      </div>
+
       {/* Stats Grid */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {stats.map((stat) => (
