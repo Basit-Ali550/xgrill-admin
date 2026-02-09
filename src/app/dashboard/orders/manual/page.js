@@ -17,18 +17,20 @@ import {
   Plus,
   Minus,
   Trash2,
-  User,
   Utensils,
   Tag,
   Loader2,
   Check,
   Store,
-  Receipt,
   X,
   Package,
   ChevronDown,
   Filter,
   Layers,
+  Phone,
+  MapPin,
+  ShoppingBag,
+  NotebookPen,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -45,6 +47,8 @@ export default function ManualOrderPage() {
   const [cart, setCart] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [notes, setNotes] = useState("");
+  const [deliveryAddress, setDeliveryAddress] = useState("");
+  const [contactPhone, setContactPhone] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
   // Filter State
@@ -68,6 +72,16 @@ export default function ManualOrderPage() {
       setSelectedUser(currentUser);
     }
   }, [currentUser]);
+
+  useEffect(() => {
+    if (selectedUser) {
+      setContactPhone(selectedUser.phone || "");
+      setDeliveryAddress(selectedUser.address || "");
+    } else {
+      setContactPhone("");
+      setDeliveryAddress("");
+    }
+  }, [selectedUser]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -185,6 +199,8 @@ export default function ManualOrderPage() {
         })),
         customerId: selectedUser.id,
         notes,
+        phone: contactPhone,
+        address: deliveryAddress,
       };
 
       const result = await placeOrderAction(orderData);
@@ -193,6 +209,8 @@ export default function ManualOrderPage() {
         toast.success("Order placed successfully!");
         setCart([]);
         setNotes("");
+        setDeliveryAddress(selectedUser.address || "");
+        setContactPhone(selectedUser.phone || "");
       } else {
         toast.error(result.error || "Failed to place order");
       }
@@ -394,7 +412,7 @@ export default function ManualOrderPage() {
                     onClick={() => addToCart(item, item.type)}
                     className="group relative bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/10 transition-all cursor-pointer"
                   >
-                    <div className="aspect-square relative bg-gradient-to-br from-gray-800 to-gray-900">
+                    <div className="aspect-square relative bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                       {item.image ? (
                         <Image
                           src={item.image}
@@ -447,71 +465,53 @@ export default function ManualOrderPage() {
       </div>
 
       {/* Right Side: Cart */}
-      <Card className="w-[360px] flex flex-col bg-gray-800/50 backdrop-blur border-gray-700/50 rounded-2xl overflow-hidden shadow-2xl">
+      <Card className="w-[400px] flex flex-col bg-gray-900 border-gray-800 rounded-2xl overflow-hidden shadow-2xl h-full ml-auto">
         {/* Cart Header */}
-        <div className="p-5 bg-gradient-to-r from-gray-800 to-gray-800/50 border-b border-gray-700/50">
+        <div className="p-4 bg-gray-800/50 border-b border-gray-700/50">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-3">
-              <div className="h-10 w-10 rounded-xl bg-orange-500/20 flex items-center justify-center">
-                <ShoppingCart className="text-orange-400" size={20} />
+              <div className="h-10 w-10 rounded-xl bg-orange-500/10 flex items-center justify-center">
+                <ShoppingCart className="text-orange-500" size={20} />
               </div>
               <div>
-                <h2 className="font-bold text-white">Current Order</h2>
-                <p className="text-xs text-gray-400">
-                  {cart.reduce((a, b) => a + b.quantity, 0)} items
-                </p>
+                <h2 className="font-bold text-white text-lg">Current Order</h2>
+                <div className="flex items-center gap-2 text-xs text-gray-400">
+                  <span className="bg-gray-800 px-2 py-0.5 rounded-full border border-gray-700">
+                    {cart.reduce((a, b) => a + b.quantity, 0)} items
+                  </span>
+                  <span>•</span>
+                  <span>{new Date().toLocaleDateString()}</span>
+                </div>
               </div>
             </div>
             {cart.length > 0 && (
               <Button
                 variant="ghost"
-                size="sm"
+                size="icon"
                 onClick={() => setCart([])}
-                className="text-gray-400 hover:text-red-400"
+                className="h-8 w-8 text-gray-400 hover:text-red-400 hover:bg-red-500/10 rounded-lg transition-colors"
+                title="Clear Cart"
               >
                 <Trash2 size={16} />
               </Button>
             )}
           </div>
 
-          {/* Customer Selection */}
-          <div className="relative">
-            <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">
-              Customer
-            </label>
-            {selectedUser ? (
-              <div className="flex items-center justify-between bg-gray-900/50 p-3 rounded-xl border border-green-500/30">
-                <div className="flex items-center gap-3">
-                  <div className="h-9 w-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 flex items-center justify-center text-white font-bold text-sm">
-                    {selectedUser.name?.charAt(0).toUpperCase()}
-                  </div>
-                  <div>
-                    <p className="text-sm font-medium text-white">{selectedUser.name}</p>
-                    <p className="text-xs text-gray-400">{selectedUser.phone || selectedUser.email}</p>
-                  </div>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="h-8 w-8 p-0 text-gray-400 hover:text-red-400"
-                  onClick={() => setSelectedUser(null)}
-                >
-                  <X size={16} />
-                </Button>
-              </div>
-            ) : (
-              <div className="relative">
-                <Search className="absolute left-3 top-3 text-gray-500" size={16} />
+          {/* Customer Selection & Details */}
+          <div className="space-y-3">
+            {!selectedUser ? (
+              <div className="relative group">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-blue-400 transition-colors" size={16} />
                 <Input
-                  placeholder="Search customer..."
-                  className="pl-9 pr-24 bg-gray-900/50 border-gray-700 rounded-xl"
+                  placeholder="Select Customer..."
+                  className="pl-10 pr-24 bg-gray-950 border-gray-700 rounded-xl h-11 focus:ring-1 focus:ring-blue-500/50 transition-all"
                   value={userSearch}
                   onFocus={() => setIsUserDropdownOpen(true)}
                   onChange={(e) => setUserSearch(e.target.value)}
                 />
                 <Button
                   size="sm"
-                  className="absolute right-1.5 top-1.5 h-8 bg-green-500/20 hover:bg-green-500 text-green-400 hover:text-white border-0"
+                  className="absolute right-1.5 top-1.5 h-8 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600/50 rounded-lg text-xs"
                   onClick={() => {
                     if (currentUser) {
                       setSelectedUser(currentUser);
@@ -519,33 +519,33 @@ export default function ManualOrderPage() {
                     }
                   }}
                 >
-                  <Store size={14} className="mr-1" /> Walk-in
+                  <Store size={12} className="mr-1.5" /> Walk-in
                 </Button>
 
                 {isUserDropdownOpen && userSearch && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto">
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
                     {isLoadingUsers ? (
-                      <div className="p-4 text-center text-gray-500 text-sm">
-                        <Loader2 className="animate-spin mx-auto mb-2" size={20} />
+                      <div className="p-4 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
+                        <Loader2 className="animate-spin" size={16} />
                         Searching...
                       </div>
                     ) : users.length > 0 ? (
                       users.map((user) => (
                         <div
                           key={user.id}
-                          className="p-3 hover:bg-gray-800 cursor-pointer flex items-center gap-3 border-b border-gray-800 last:border-0"
+                          className="p-3 hover:bg-gray-800 cursor-pointer flex items-center gap-3 border-b border-gray-800/50 last:border-0 transition-colors"
                           onClick={() => {
                             setSelectedUser(user);
                             setIsUserDropdownOpen(false);
                             setUserSearch("");
                           }}
                         >
-                          <div className="h-8 w-8 rounded-full bg-gray-700 flex items-center justify-center text-gray-300">
-                            <User size={14} />
+                          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs ring-2 ring-blue-500/10">
+                            {user.name?.charAt(0).toUpperCase()}
                           </div>
-                          <div className="flex-1">
-                            <p className="text-sm font-medium text-white">{user.name}</p>
-                            <p className="text-xs text-gray-400">{user.phone || user.email}</p>
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-white truncate">{user.name}</p>
+                            <p className="text-xs text-gray-400 truncate">{user.phone || user.email}</p>
                           </div>
                         </div>
                       ))
@@ -555,50 +555,117 @@ export default function ManualOrderPage() {
                   </div>
                 )}
               </div>
+            ) : (
+              <div className="bg-gray-950 rounded-xl border border-gray-800 overflow-hidden">
+                {/* Selected Customer Header */}
+                <div className="p-3 bg-gray-900/50 border-b border-gray-800 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div>
+                      <p className="text-sm font-bold text-white">{selectedUser.name}</p>
+                      <p className="text-[10px] text-blue-400 font-medium">CUSTOMER</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="h-7 w-7 text-gray-500 hover:text-red-400 hover:bg-red-500/10 rounded-lg"
+                    onClick={() => setSelectedUser(null)}
+                  >
+                    <X size={16} />
+                  </Button>
+                </div>
+
+                {/* Contact Inputs */}
+                <div className="p-3 space-y-2.5">
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 text-gray-500">
+                      <Phone size={14} />
+                    </div>
+                    <Input 
+                      value={contactPhone}
+                      onChange={(e) => setContactPhone(e.target.value)}
+                      placeholder="Add phone number..."
+                      className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 text-gray-500">
+                      <MapPin size={14} />
+                    </div>
+                    <Input 
+                      value={deliveryAddress}
+                      onChange={(e) => setDeliveryAddress(e.target.value)}
+                      placeholder="Add delivery address..."
+                      className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
+                    />
+                  </div>
+                   <div className="relative">
+                    <div className="absolute left-3 top-2.5 text-gray-500">
+                      <NotebookPen size={14} />
+                    </div>
+                    <Input 
+                      value={notes}
+                      onChange={(e) => setNotes(e.target.value)}
+                      placeholder="Add order notes (optional)..."
+                      className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
+                    />
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
 
         {/* Cart Items */}
-        <ScrollArea className="flex-1 p-4">
+        <ScrollArea className="flex-1 bg-gray-950/30">
           {cart.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center text-gray-500 py-12">
-              <div className="h-20 w-20 rounded-full bg-gray-800/50 flex items-center justify-center mb-4">
-                <ShoppingCart size={32} className="opacity-30" />
+            <div className="h-full flex flex-col items-center justify-center p-8 text-center">
+              <div className="h-24 w-24 rounded-full bg-gray-800/50 flex items-center justify-center mb-4 ring-1 ring-gray-700/50">
+                <ShoppingBag size={40} className="text-gray-600" />
               </div>
-              <p className="font-medium">Cart is empty</p>
-              <p className="text-sm text-gray-600">Click items to add</p>
+              <p className="text-lg font-medium text-gray-400">Cart is empty</p>
+              <p className="text-sm text-gray-600 mt-1 max-w-[200px]">Select items from the menu to start your order</p>
             </div>
           ) : (
-            <div className="space-y-3">
+            <div className="p-4 space-y-3">
               {cart.map((item, index) => (
                 <div
                   key={`${item.productId}-${item.dealId}-${index}`}
-                  className="flex gap-3 bg-gray-900/50 p-3 rounded-xl border border-gray-700/50"
+                  className="flex gap-3 bg-gray-900 border border-gray-800 p-3 rounded-xl group hover:border-gray-700 transition-colors relative"
                 >
-                  <div className="h-14 w-14 bg-gray-800 rounded-lg relative overflow-hidden shrink-0">
+                  <div className="h-16 w-16 bg-gray-950 rounded-lg relative overflow-hidden shrink-0 border border-gray-800">
                     {item.image ? (
                       <Image src={item.image} alt={item.name} fill className="object-cover" />
                     ) : (
-                      <div className="flex items-center justify-center h-full text-gray-600">
-                        {item.type === "deal" ? <Tag size={16} /> : item.type === "inventory" ? <Package size={16} /> : <Utensils size={16} />}
+                      <div className="flex items-center justify-center h-full text-gray-700">
+                        {item.type === "deal" ? <Tag size={20} /> : item.type === "inventory" ? <Package size={20} /> : <Utensils size={20} />}
                       </div>
                     )}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-medium text-sm text-white truncate">{item.name}</h4>
-                    <p className="text-xs text-gray-400">Rs. {item.price} each</p>
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex items-center gap-1 bg-gray-800 rounded-lg border border-gray-700">
-                        <button onClick={() => updateQuantity(index, -1)} className="p-1.5 hover:text-red-400 transition-colors">
+                  <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
+                    <div className="flex justify-between items-start gap-2">
+                      <h4 className="font-medium text-sm text-gray-200 line-clamp-1 leading-tight">{item.name}</h4>
+                      <span className="font-bold text-white text-sm whitespace-nowrap">Rs. {item.price * item.quantity}</span>
+                    </div>
+                    
+                    <div className="flex items-end justify-between">
+                      <p className="text-[11px] text-gray-500">Rs. {item.price} x {item.quantity}</p>
+                      
+                      <div className="flex items-center gap-1 bg-gray-950 rounded-lg border border-gray-800 p-0.5 shadow-sm">
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateQuantity(index, -1); }}
+                          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-red-400 transition-colors"
+                        >
                           <Minus size={12} />
                         </button>
-                        <span className="text-xs font-bold w-6 text-center">{item.quantity}</span>
-                        <button onClick={() => updateQuantity(index, 1)} className="p-1.5 hover:text-green-400 transition-colors">
+                        <span className="text-xs font-bold w-6 text-center text-gray-300">{item.quantity}</span>
+                        <button 
+                          onClick={(e) => { e.stopPropagation(); updateQuantity(index, 1); }}
+                          className="h-6 w-6 flex items-center justify-center rounded-md hover:bg-gray-800 text-gray-400 hover:text-green-400 transition-colors"
+                        >
                           <Plus size={12} />
                         </button>
                       </div>
-                      <span className="font-bold text-orange-400">Rs. {item.price * item.quantity}</span>
                     </div>
                   </div>
                 </div>
@@ -608,36 +675,41 @@ export default function ManualOrderPage() {
         </ScrollArea>
 
         {/* Cart Footer */}
-        <div className="p-5 bg-gradient-to-t from-gray-900 to-gray-800/50 border-t border-gray-700/50 space-y-4">
-          <div>
-            <label className="text-xs text-gray-500 uppercase tracking-wider mb-2 block">Order Notes</label>
-            <Input
-              value={notes}
-              onChange={(e) => setNotes(e.target.value)}
-              placeholder="Special instructions..."
-              className="bg-gray-900/50 border-gray-700 rounded-xl"
-            />
-          </div>
+        <div className="bg-gray-900 border-t border-gray-800 p-4 space-y-4 shadow-[0_-5px_20px_rgba(0,0,0,0.3)] z-10">
 
-          <div className="space-y-2">
-            <div className="flex justify-between text-sm text-gray-400">
-              <span>Subtotal</span>
-              <span>Rs. {calculateTotal()}</span>
-            </div>
-            <div className="flex justify-between text-2xl font-bold pt-3 border-t border-gray-700">
-              <span className="text-white">Total</span>
-              <span className="text-orange-500">Rs. {calculateTotal()}</span>
+          <div className="space-y-3 pt-2">
+            <div className="flex justify-between items-end">
+              <div>
+                <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Payable</p>
+                <p className="text-3xl font-bold text-white mt-0.5">
+                  <span className="text-xl text-gray-500 mr-1">Rs.</span>
+                  {calculateTotal()}
+                </p>
+              </div>
             </div>
           </div>
 
           <Button
             size="lg"
-            className="w-full h-14 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold text-lg rounded-xl shadow-lg shadow-orange-500/20 disabled:opacity-50"
+            className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all ${
+              cart.length === 0 || !selectedUser 
+                ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
+                : "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-500/20 active:scale-[0.98]"
+            }`}
             onClick={handlePlaceOrder}
             disabled={cart.length === 0 || !selectedUser || isPlacingOrder}
           >
-            {isPlacingOrder ? <Loader2 className="animate-spin mr-2" /> : <Check className="mr-2" size={20} />}
-            {isPlacingOrder ? "Processing..." : "Place Order"}
+            {isPlacingOrder ? (
+              <div className="flex items-center gap-2">
+                <Loader2 className="animate-spin" />
+                <span>Processing Order...</span>
+              </div>
+            ) : (
+              <div className="flex items-center gap-2">
+                <span>Place Order</span>
+                <Check className="stroke-[3px]" size={20} />
+              </div>
+            )}
           </Button>
         </div>
       </Card>

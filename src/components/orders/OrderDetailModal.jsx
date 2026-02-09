@@ -5,15 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
 import { ORDER_STATUSES, ORDER_STATUS_COLORS } from "@/constants";
 import { formatDistanceToNow, format } from "date-fns";
-import {
-  Clock,
-  User,
-  Phone,
-  MapPin,
-  ShoppingBag,
-  Flame,
-  Package,
-} from "lucide-react";
+import { Clock, Phone, MapPin, Flame, Package, Mail, User } from "lucide-react";
 
 const formatPrice = (amount) => {
   return new Intl.NumberFormat("en-PK", {
@@ -75,29 +67,43 @@ export default function OrderDetailModal({
           </p>
         </div>
 
-        {/* Customer */}
-        <div className="flex items-center gap-3 p-3 bg-gray-800/30 rounded-lg border border-gray-700/50">
-          <div className="h-10 w-10 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400">
-            <User className="w-5 h-5" />
+        {/* Customer Details */}
+        <div className="bg-gray-800/50 rounded-xl border border-gray-700 p-4 space-y-3">
+          <div className="flex items-center gap-3 border-b border-gray-700/50 pb-3">
+            <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center">
+              <User className="w-5 h-5 text-blue-400" />
+            </div>
+            <div>
+              <p className="font-bold text-white text-sm">
+                {order.user?.name || "Guest"}
+              </p>
+              <p className="text-xs text-blue-400 font-medium bg-blue-500/10 px-2 py-0.5 rounded-full inline-block mt-1">
+                CUSTOMER
+              </p>
+            </div>
           </div>
-          <div className="flex-1">
-            <p className="font-medium text-white">
-              {order.user?.name || "Guest"}
-            </p>
-            <p className="text-sm text-gray-400 flex items-center gap-1">
-              <Phone className="w-3 h-3" />
-              {order.user?.phone || order.phone || "N/A"}
-            </p>
+
+          <div className="space-y-2 text-sm pt-1">
+            <div className="flex items-center gap-3 text-gray-300">
+              <Phone className="w-4 h-4 text-gray-500" />
+              <span>{order.phone || order.user?.phone || "No phone"}</span>
+            </div>
+
+            {order.user?.email && (
+              <div className="flex items-center gap-3 text-gray-300">
+                <Mail className="w-4 h-4 text-gray-500" />
+                <span>{order.user.email}</span>
+              </div>
+            )}
+
+            {order.address && (
+              <div className="flex items-start gap-3 text-gray-300">
+                <MapPin className="w-4 h-4 text-gray-500 mt-0.5" />
+                <span className="leading-tight">{order.address}</span>
+              </div>
+            )}
           </div>
         </div>
-
-        {/* Address */}
-        {order.address && (
-          <div className="flex items-start gap-2 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
-            <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
-            <p className="text-sm text-blue-300">{order.address}</p>
-          </div>
-        )}
 
         {/* Items */}
         <div>
@@ -158,7 +164,6 @@ export default function OrderDetailModal({
           />
         </div>
 
-        {/* Quick Actions */}
         {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
           <div className="flex gap-2 pt-2">
             {order.status === "PENDING" && (

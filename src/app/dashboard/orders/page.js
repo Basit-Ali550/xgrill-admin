@@ -92,12 +92,15 @@ function DraggableOrderCard({ order, onClick, isHighlighted }) {
       >
         {/* Customer Row */}
         <div className="flex items-center gap-2 mb-3">
-          <div className="h-8 w-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs flex-shrink-0">
-            {order.user?.name?.charAt(0)?.toUpperCase() || "G"}
-          </div>
           <div className="flex-1 min-w-0">
             <p className="text-sm text-white font-medium truncate">{order.user?.name || "Guest"}</p>
-            <p className="text-[11px] text-gray-500 truncate">{order.user?.phone || "No phone"}</p>
+            <p className="text-[11px] text-gray-500 truncate">{order.phone || order.user?.phone || "No phone"}</p>
+            {order.address && (
+              <p className="text-[10px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
+                <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
+                {order.address}
+              </p>
+            )}
           </div>
           <div className="text-right flex-shrink-0">
             <p className="font-bold text-orange-400 text-sm">{formatPrice(order.totalAmount)}</p>
@@ -116,34 +119,44 @@ function DraggableOrderCard({ order, onClick, isHighlighted }) {
             <p className="text-[10px] text-gray-500 pl-4">+{moreItems} more item{moreItems > 1 ? 's' : ''}</p>
           )}
         </div>
+
+        {/* Notes Indicator */}
+        {order.notes && (
+          <div className="mt-2 text-xs text-yellow-500/80 bg-yellow-500/10 px-2 py-1 rounded border border-yellow-500/20 truncate">
+            📝 {order.notes}
+          </div>
+        )}
       </div>
     </div>
   );
 }
 
-// Drag Overlay Card
-function OrderCardOverlay({ order }) {
-  return (
-    <div className="bg-gray-800 border-2 border-blue-500 rounded-lg shadow-2xl w-[280px] rotate-3">
-      <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/50 bg-gray-800/50 rounded-t-lg">
-        <GripVertical className="w-4 h-4 text-blue-400" />
-        <span className="font-bold text-white text-sm">#{order.orderNumber}</span>
-      </div>
-      <div className="p-3">
-        <div className="flex items-center gap-2 mb-2">
-          <div className="h-7 w-7 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white font-bold text-xs">
-            {order.user?.name?.charAt(0)?.toUpperCase() || "G"}
+  // Drag Overlay Card - Updated to match new design
+  function OrderCardOverlay({ order }) {
+    return (
+      <div className="bg-gray-800 border-2 border-blue-500 rounded-lg shadow-2xl w-[280px] rotate-3">
+        <div className="flex items-center gap-2 px-3 py-2 border-b border-gray-700/50 bg-gray-800/50 rounded-t-lg">
+          <GripVertical className="w-4 h-4 text-blue-400" />
+          <span className="font-bold text-white text-sm">#{order.orderNumber}</span>
+        </div>
+        <div className="p-3">
+          <div className="mb-2">
+            <span className="text-sm text-gray-200 truncate font-bold block">{order.user?.name || "Guest"}</span>
+            <span className="text-[10px] text-gray-400 block">{order.phone || order.user?.phone || "No phone"}</span>
+             {order.address && (
+              <p className="text-[10px] text-gray-500 truncate mt-0.5 border-l-2 border-blue-500 pl-1">
+                {order.address}
+              </p>
+            )}
           </div>
-          <span className="text-sm text-gray-200 truncate">{order.user?.name || "Guest"}</span>
-        </div>
-        <div className="flex items-center justify-between text-xs">
-          <span className="text-gray-500">{order.items?.length} items</span>
-          <span className="font-bold text-orange-400">{formatPrice(order.totalAmount)}</span>
+          <div className="flex items-center justify-between text-xs mt-2 pt-2 border-t border-gray-700/50">
+            <span className="text-gray-500">{order.items?.length} items</span>
+            <span className="font-bold text-orange-400">{formatPrice(order.totalAmount)}</span>
+          </div>
         </div>
       </div>
-    </div>
-  );
-}
+    );
+  }
 
 // Droppable Kanban Column
 function KanbanColumn({ status, orders, onCardClick, highlightedOrderId, isOver }) {
