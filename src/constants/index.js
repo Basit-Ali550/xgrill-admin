@@ -3,8 +3,8 @@
 // Order status with colors
 export const ORDER_STATUS_COLORS = {
   PENDING: { bg: "rgba(234, 179, 8, 0.2)", color: "#facc15", label: "Pending" },
-  ACCEPTED: { bg: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", label: "Accepted" },
   PREPARING: { bg: "rgba(139, 92, 246, 0.2)", color: "#a78bfa", label: "Preparing" },
+  PREPARED: { bg: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", label: "Prepared" },
   OUT_FOR_DELIVERY: { bg: "rgba(249, 115, 22, 0.2)", color: "#fb923c", label: "Out for Delivery" },
   DELIVERED: { bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", label: "Delivered" },
   CANCELLED: { bg: "rgba(239, 68, 68, 0.2)", color: "#f87171", label: "Cancelled" },
@@ -24,8 +24,8 @@ export const CATEGORIES_WITH_SIZES = Object.keys(SIZE_CONFIG);
 // Order statuses array
 export const ORDER_STATUSES = [
   "PENDING",
-  "ACCEPTED", 
   "PREPARING",
+  "PREPARED",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
   "CANCELLED",
