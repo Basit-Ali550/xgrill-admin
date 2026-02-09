@@ -4,13 +4,7 @@ import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import {
-  Package,
-  DollarSign,
-  AlertTriangle,
-  Scale,
-  Beaker,
-} from "lucide-react";
+import { DollarSign, AlertTriangle, Scale, Beaker } from "lucide-react";
 import {
   createIngredientAction,
   updateIngredientAction,

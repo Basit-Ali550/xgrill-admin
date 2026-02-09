@@ -9,6 +9,7 @@ import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { getDashboardStats } from "@/app/actions/dashboard";
+import LossReportTable from "@/components/dashboard/LossReportTable";
 import { DatePicker, ConfigProvider, theme } from 'antd';
 import dayjs from 'dayjs';
 import { 
@@ -226,6 +227,11 @@ export default function DashboardPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Loss Report */}
+      <div className="mt-6">
+        <LossReportTable startDate={startDate} endDate={endDate} />
       </div>
     </>
   );
