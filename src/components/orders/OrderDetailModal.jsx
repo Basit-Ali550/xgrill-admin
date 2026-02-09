@@ -20,6 +20,7 @@ export default function OrderDetailModal({
   onClose,
   order,
   onStatusChange,
+  isChef = false,
 }) {
   if (!order) return null;
 
@@ -156,7 +157,9 @@ export default function OrderDetailModal({
           <Select
             value={order.status}
             onChange={handleStatusChange}
-            options={ORDER_STATUSES.map((s) => ({
+            options={ORDER_STATUSES.filter(
+              (s) => !isChef || s !== "CANCELLED",
+            ).map((s) => ({
               value: s,
               label: ORDER_STATUS_COLORS[s]?.label || s.replace(/_/g, " "),
             }))}
@@ -198,13 +201,15 @@ export default function OrderDetailModal({
                 Mark Delivered
               </Button>
             )}
-            <Button
-              variant="ghost"
-              onClick={() => onStatusChange(order.id, "CANCELLED")}
-              className="text-red-400 hover:bg-red-500/10 hover:text-red-400"
-            >
-              Cancel
-            </Button>
+            {!isChef && (
+              <Button
+                variant="ghost"
+                onClick={() => onStatusChange(order.id, "CANCELLED")}
+                className="text-red-400 hover:bg-red-500/10 hover:text-red-400"
+              >
+                Cancel
+              </Button>
+            )}
           </div>
         )}
       </div>

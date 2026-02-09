@@ -21,8 +21,8 @@ export async function loginAction(prevState, formData) {
       return { error: data.error || data.message || "Login failed" };
     }
 
-    if (data.data.user.role !== "ADMIN") {
-      return { error: "Access denied. Admin only." };
+    if (data.data.user.role !== "ADMIN" && data.data.user.role !== "CHEF") {
+      return { error: "Access denied. Insufficient privileges." };
     }
 
     // Set cookie

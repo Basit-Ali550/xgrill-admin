@@ -63,6 +63,13 @@ export default function DashboardLayout({ children }) {
     }
   }, [isAuthenticated, loading, router]);
 
+  // Role based redirect
+  useEffect(() => {
+    if (!loading && isAuthenticated && user?.role === "CHEF") {
+      router.push("/chef/orders");
+    }
+  }, [isAuthenticated, loading, user, router]);
+
   // Get page title based on route (computed, not state)
   const pageTitle = (() => {
     const currentNav = navItems.find(item => 

@@ -1,10 +1,11 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
 import { FormInput } from "@/components/ui/form-components";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { loginAction } from "@/app/actions/auth";
+import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 import { useRouter } from "next/navigation";
 import { Flame, ArrowRight, Loader2, CheckCircle2 } from "lucide-react";
@@ -22,7 +23,23 @@ const LoginSchema = Yup.object().shape({
 
 export default function LoginPage() {
   const router = useRouter();
+  const { isAuthenticated, user, loading } = useAuth();
   const [isRedirecting, setIsRedirecting] = useState(false);
+
+  useEffect(() => {
+    if (!loading && isAuthenticated) {
+      const destination = user?.role === "CHEF" ? "/chef/orders" : "/dashboard";
+      router.replace(destination);
+    }
+  }, [isAuthenticated, loading, user, router]);
+
+  if (loading || isAuthenticated) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center bg-gray-950">
+        <Loader2 className="h-12 w-12 animate-spin text-orange-500" />
+      </div>
+    );
+  }
 
   const handleSubmit = async (values, { setSubmitting, setStatus }) => {
     try {
@@ -47,7 +64,8 @@ export default function LoginPage() {
 
         // Hard redirect for context refresh
         setTimeout(() => {
-          window.location.href = "/dashboard";
+          const destination = result.data.user.role === "CHEF" ? "/chef/orders" : "/dashboard";
+          window.location.href = destination;
         }, 800);
       }
     } catch (error) {

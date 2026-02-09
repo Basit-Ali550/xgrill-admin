@@ -10,26 +10,48 @@ export function AuthProvider({ children }) {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const initAuth = () => {
+    const initAuth = async () => {
       try {
         const storedToken = localStorage.getItem("token");
-        const storedUser = localStorage.getItem("user");
 
-        if (storedToken && storedUser) {
+        if (storedToken) {
           setToken(storedToken);
-          setUser(JSON.parse(storedUser));
+
+          // Verify token and get fresh user data
+          const res = await fetch(`${API_URL}/api/v1/auth/me`, {
+            headers: {
+              Authorization: `Bearer ${storedToken}`,
+            },
+          });
+
+          if (res.ok) {
+            const data = await res.json();
+            // The backend returns { status: 'success', data: user }
+            const userData = data.data || data;
+
+            if (userData.role !== "ADMIN" && userData.role !== "CHEF") {
+              throw new Error("Insufficient privileges");
+            }
+
+            setUser(userData);
+            // Update local storage with fresh data just in case, but we don't rely on it for role
+            localStorage.setItem("user", JSON.stringify(userData));
+          } else {
+            throw new Error("Token validation failed");
+          }
         }
       } catch (error) {
-        console.error("Failed to restore auth:", error);
+        console.error("Auth initialization failed:", error);
         localStorage.removeItem("token");
         localStorage.removeItem("user");
+        setToken(null);
+        setUser(null);
       } finally {
         setLoading(false);
       }
     };
 
-    const timer = setTimeout(initAuth, 0);
-    return () => clearTimeout(timer);
+    initAuth();
   }, []);
 
   const login = async (email, password) => {
@@ -45,8 +67,8 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Login failed");
     }
 
-    if (data.data.user.role !== "ADMIN") {
-      throw new Error("Access denied. Admin only.");
+    if (data.data.user.role !== "ADMIN" && data.data.user.role !== "CHEF") {
+      throw new Error("Access denied. Insufficient privileges.");
     }
 
     localStorage.setItem("token", data.data.token);
@@ -65,7 +87,8 @@ export function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const isAuthenticated = !!token && user?.role === "ADMIN";
+  const isAuthenticated =
+    !!token && (user?.role === "ADMIN" || user?.role === "CHEF");
 
   return (
     <AuthContext.Provider
