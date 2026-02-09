@@ -55,10 +55,13 @@ export default function DashboardPage() {
       totalDiscountGiven: 0
   });
 
+  const [lastUpdated, setLastUpdated] = useState(null);
+
   const fetchStats = useCallback(async () => {
       const res = await getDashboardStats(startDate, endDate);
       if (res.success) {
           setDashboardStats(res.data);
+          setLastUpdated(new Date());
       }
   }, [startDate, endDate]);
 
@@ -120,44 +123,72 @@ export default function DashboardPage() {
 
   return (
     <>
-      {/* Date Filter Header */}
-      <div className="flex justify-end mb-6">
-        <ConfigProvider
-          theme={{
-            algorithm: theme.darkAlgorithm,
-            token: {
-              colorPrimary: '#3b82f6',
-              colorBgContainer: '#1f2937',
-              colorBorder: '#374151',
-              colorText: '#fff',
-              colorTextPlaceholder: '#9ca3af',
-            },
-          }}
-        >
-          <RangePicker
-            value={[
-              startDate ? dayjs(startDate) : null,
-              endDate ? dayjs(endDate) : null
-            ]}
-            onChange={(dates) => {
-              if (dates) {
-                setStartDate(dates[0]?.format('YYYY-MM-DD') || '');
-                setEndDate(dates[1]?.format('YYYY-MM-DD') || '');
-              } else {
-                setStartDate('');
-                setEndDate('');
-              }
+      {/* Date Filter & Actions Header */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
+        
+        {/* Left Side: Status & Last Updated */}
+        <div className="flex items-center gap-4">
+           <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-800/50 rounded-lg border border-gray-700/50">
+              <div className={`w-2 h-2 rounded-full ${socket?.connected ? 'bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.5)]' : 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.5)]'}`} />
+              <span className="text-sm text-gray-400 font-medium">
+                {socket?.connected ? 'Live' : 'Disconnected'}
+              </span>
+           </div>
+           
+           {lastUpdated && (
+             <p className="text-xs text-gray-500">
+               Updated: {lastUpdated.toLocaleTimeString()}
+             </p>
+           )}
+        </div>
+
+        {/* Right Side: Controls */}
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <button 
+            onClick={fetchStats}
+            className="p-2 bg-gray-800 hover:bg-gray-700 text-gray-400 hover:text-white rounded-lg border border-gray-700 transition-colors"
+            title="Refresh Data"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-refresh-cw"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M3 21v-5h5"/></svg>
+          </button>
+
+          <ConfigProvider
+            theme={{
+              algorithm: theme.darkAlgorithm,
+              token: {
+                colorPrimary: '#3b82f6',
+                colorBgContainer: '#1f2937',
+                colorBorder: '#374151',
+                colorText: '#fff',
+                colorTextPlaceholder: '#9ca3af',
+              },
             }}
-            allowClear
-            format="YYYY-MM-DD"
-            placeholder={['Start Date', 'End Date']}
-            style={{ 
-              background: 'rgba(59, 130, 246, 0.1)',
-              borderColor: 'rgba(59, 130, 246, 0.3)',
-            }}
-            className="rounded-lg!"
-          />
-        </ConfigProvider>
+          >
+            <RangePicker
+              value={[
+                startDate ? dayjs(startDate) : null,
+                endDate ? dayjs(endDate) : null
+              ]}
+              onChange={(dates) => {
+                if (dates) {
+                  setStartDate(dates[0]?.format('YYYY-MM-DD') || '');
+                  setEndDate(dates[1]?.format('YYYY-MM-DD') || '');
+                } else {
+                  setStartDate('');
+                  setEndDate('');
+                }
+              }}
+              allowClear
+              format="YYYY-MM-DD"
+              placeholder={['Start Date', 'End Date']}
+              style={{ 
+                background: 'rgba(59, 130, 246, 0.1)',
+                borderColor: 'rgba(59, 130, 246, 0.3)',
+              }}
+              className="rounded-lg! flex-1 sm:flex-none"
+            />
+          </ConfigProvider>
+        </div>
       </div>
 
       {/* Stats Grid */}

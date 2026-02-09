@@ -9,15 +9,28 @@ import {
   getSortedRowModel,
   useReactTable,
 } from "@tanstack/react-table";
-import { ArrowUpDown, ChevronDown } from "lucide-react";
+import { ChevronDown } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { cn } from "@/lib/utils";
 
-export function DataTable({ columns, data, isLoading }) {
+export function DataTable({
+  columns,
+  data,
+  isLoading,
+  filterColumn,
+  filterValue,
+}) {
   const [sorting, setSorting] = React.useState([]);
   const [columnFilters, setColumnFilters] = React.useState([]);
+  const [globalFilter, setGlobalFilter] = React.useState("");
+
+  // Update filters when props change
+  React.useEffect(() => {
+    if (filterColumn && filterValue !== undefined) {
+      table.getColumn(filterColumn)?.setFilterValue(filterValue);
+    }
+  }, [filterColumn, filterValue]);
 
   const table = useReactTable({
     data,
@@ -31,13 +44,15 @@ export function DataTable({ columns, data, isLoading }) {
     state: {
       sorting,
       columnFilters,
+      globalFilter,
     },
+    onGlobalFilterChange: setGlobalFilter,
   });
 
   return (
     <div className="w-full space-y-4">
       {/* Table */}
-      <div className="rounded-none border-y border-gray-800 bg-gray-900/50 shadow-sm overflow-hidden">
+      <div className="rounded-none border-y border-gray-800 bg-gray-900/50 shadow-sm overflow-hidden border-x-0">
         <div className="relative w-full overflow-auto">
           <table className="w-full caption-bottom text-sm">
             <thead>

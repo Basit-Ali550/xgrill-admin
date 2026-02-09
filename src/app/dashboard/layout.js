@@ -15,7 +15,7 @@ import {
   MdChevronRight,
   MdClose,
   MdAddShoppingCart,
-  MdHistory,
+  MdPeople,
 } from "react-icons/md";
 import { GiGrainBundle } from "react-icons/gi";
 import { FaFire } from "react-icons/fa";
@@ -34,6 +34,7 @@ const navItems = [
   { href: "/dashboard/inventory", label: "Inventory", Icon: MdInventory2 },
   { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
   { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
+  { href: "/dashboard/staff", label: "Staff", Icon: MdPeople },
   // { href: "/dashboard/history", label: "History & Analytics", Icon: MdHistory },
 ];
 

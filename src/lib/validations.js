@@ -49,3 +49,23 @@ export const productSchema = Yup.object().shape({
     )
     .notRequired(),
 });
+
+export const staffSchema = Yup.object().shape({
+  name: Yup.string().required("Name is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  password: Yup.string().min(6, "Password must be at least 6 characters").required("Password is required"),
+  phone: Yup.string().nullable(),
+  role: Yup.string().required("Role is required"),
+  profileImage: Yup.string().nullable(),
+  idCardImage: Yup.string().nullable(),
+});
+
+export const editStaffSchema = Yup.object().shape({
+  name: Yup.string().required("Name is required"),
+  email: Yup.string().email("Invalid email").required("Email is required"),
+  password: Yup.string().min(6, "Password must be at least 6 characters").nullable(),
+  phone: Yup.string().nullable(),
+  role: Yup.string().required("Role is required"),
+  profileImage: Yup.string().nullable(),
+  idCardImage: Yup.string().nullable(),
+});

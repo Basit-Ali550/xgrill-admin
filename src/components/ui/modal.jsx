@@ -10,7 +10,7 @@ const Modal = ({ isOpen, onClose, title, children, className, noPadding }) => {
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 animate-in fade-in duration-200">
       <div
         className={cn(
-          "bg-gray-900 border border-gray-800 rounded-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200",
+          "bg-gray-950 border border-gray-800 rounded-xl w-full max-w-lg overflow-hidden flex flex-col max-h-[90vh] shadow-2xl animate-in zoom-in-95 duration-200",
           className,
         )}
         onClick={(e) => e.stopPropagation()}
@@ -31,7 +31,7 @@ const Modal = ({ isOpen, onClose, title, children, className, noPadding }) => {
 
         <div
           className={cn(
-            "overflow-y-auto custom-scrollbar",
+            "overflow-y-auto custom-scrollbar flex-1",
             !noPadding && "p-6",
           )}
         >

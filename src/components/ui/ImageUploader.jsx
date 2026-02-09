@@ -15,6 +15,7 @@ export default function ImageUploader({
   placeholder = "Click to upload or drag and drop",
   accept = "image/*",
   maxSize = 10, // MB
+  onUploadStatusChange,
 }) {
   const [isUploading, setIsUploading] = useState(false);
   const [error, setError] = useState(null);
@@ -37,6 +38,7 @@ export default function ImageUploader({
     }
 
     setIsUploading(true);
+    if (onUploadStatusChange) onUploadStatusChange(true);
     setError(null);
 
     try {
@@ -55,6 +57,7 @@ export default function ImageUploader({
       setError("Upload failed. Please try again.");
     } finally {
       setIsUploading(false);
+      if (onUploadStatusChange) onUploadStatusChange(false);
     }
   };
 
@@ -137,7 +140,7 @@ export default function ImageUploader({
           ) : (
             <>
               <Upload className="w-8 h-8 text-gray-500" />
-              <span className="text-sm text-gray-400 text-center px-4">
+              <span className="text-xs text-gray-400 text-center px-4">
                 {placeholder}
               </span>
               <span className="text-xs text-gray-600">Max {maxSize}MB</span>
