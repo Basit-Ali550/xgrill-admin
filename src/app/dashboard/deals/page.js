@@ -2,8 +2,8 @@
 import { useState, useMemo, useEffect } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { ItemCard } from "@/components/dashboard/ItemCard";
 import { useDeals } from "@/hooks/useDeals";
 import AddDealModal from "@/components/deals/AddDealModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
@@ -209,109 +209,38 @@ export default function DealsPage() {
         ) : (
            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 overflow-y-auto pb-6 pr-2 custom-scrollbar">
               {filteredDeals.map((deal) => (
-                  <div
-                    key={deal.id}
-                    className="group bg-gray-800/40 backdrop-blur border border-gray-700/50 rounded-2xl overflow-hidden hover:border-orange-500/30 hover:shadow-2xl hover:shadow-orange-500/5 transition-all duration-300 flex flex-col"
-                  >
-                    {/* Image Header */}
-                    <div className="relative h-48 bg-gray-900 overflow-hidden transition-all duration-300">
-                      {deal.image ? (
-                        <img
-                          src={deal.image}
-                          alt={deal.name}
-                          className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                        />
-                      ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-gray-800 to-gray-900">
-                          <Tag className="text-gray-700" size={48} />
-                        </div>
-                      )}
-                      
-                      {/* Status Badges */}
-                      <div className="absolute top-3 right-3 flex flex-col gap-2 items-end">
-                         <Badge className={`${deal.isActive ? 'bg-green-500/90 text-white' : 'bg-gray-500/90 text-white'} border-0 shadow-lg backdrop-blur supports-backdrop-filter:bg-opacity-80`}>
-                            {deal.isActive ? 'Active' : 'Inactive'}
-                         </Badge>
-                         <Badge className="bg-red-500/90 text-white border-0 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-opacity-80">
-                            {calculateSavings(deal.originalPrice, deal.dealPrice)}% OFF
-                         </Badge>
-                      </div>
-                      
-                      {/* Gradient Overlay */}
-                      <div className="absolute inset-0 bg-gradient-to-t from-gray-900 via-transparent to-transparent opacity-60" />
-                    </div>
-                    
-                    {/* Content */}
-                    <div className="p-5 flex-1 flex flex-col">
-                      <div className="flex justify-between items-start mb-2">
-                         <h3 className="font-bold text-xl text-white leading-tight group-hover:text-orange-400 transition-colors">
-                           {deal.name}
-                         </h3>
-                      </div>
-                      
-                      <p className="text-sm text-gray-400 mb-4 line-clamp-2">
-                        {deal.description || "No description provided."}
-                      </p>
-
-                      <div className="mt-auto pt-4 border-t border-gray-700/50 flex items-end justify-between">
-                         <div>
-                            <div className="text-xs text-gray-500 mb-1">Price</div>
-                            <div className="flex items-baseline gap-2">
-                               <span className="text-2xl font-bold text-white">Rs. {deal.dealPrice}</span>
-                               <span className="text-sm text-gray-500 line-through decoration-red-500/50">Rs. {deal.originalPrice}</span>
-                            </div>
-                         </div>
-                        <div className="flex gap-2">
-                     
-                        
-                           <div className="flex items-center mr-1">
-                              <Switch 
-                                  checked={deal.isActive}
-                                  onCheckedChange={() => handleToggleStatus(deal)}
-                                  className="h-5 w-9 data-[state=checked]:bg-green-500" 
-                                />
-                           </div>
-                
-
-                             {/* New View Items Button */}
-                             <Button
-                              size="sm"
-                              variant="ghost" 
-                              onClick={() => setViewingDeal(deal)}
-                              className="h-9 w-9 p-0 rounded-full bg-gray-700/50 text-gray-300 hover:bg-gray-700 hover:text-white transition-all"
-                              title="View Included Items"
-                            >
-                               <Eye size={16} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost" 
-                              onClick={() => handleEdit(deal)}
-                              className="h-9 w-9 p-0 rounded-full bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
-                              title="Edit Deal"
-                            >
-                               <Edit size={16} />
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="ghost" 
-                              onClick={() => setDeleteId(deal.id)}
-                              className="h-9 w-9 p-0 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
-                              title="Delete Deal"
-                            >
-                               <Trash2 size={16} />
-                            </Button></div>
-                         </div>
-                      </div>
-                      <button 
-                        onClick={() => setViewingDeal(deal)}
-                        className="mt-3 text-xs font-medium text-gray-500 flex items-center gap-2 bg-gray-900/50 py-1.5 px-3 rounded-lg w-fit hover:bg-gray-800 hover:text-gray-300 transition-colors cursor-pointer"
-                      >
-                         <Package size={12} className="text-orange-500" />
-                         {deal.products?.length || 0} items included
-                      </button>
-                    </div>
-                
+                <ItemCard
+                   key={deal.id}
+                   title={deal.name}
+                   image={deal.image}
+                   isActive={deal.isActive}
+                   description={deal.description}
+                   
+                   onToggleStatus={() => handleToggleStatus(deal)}
+                   onEdit={() => handleEdit(deal)}
+                   onDelete={() => setDeleteId(deal.id)}
+                   onView={() => setViewingDeal(deal)}
+                   
+                   priceDisplay={
+                     <div>
+                       <div className="flex items-baseline gap-2">
+                         <span className="text-xl font-bold text-white">Rs. {deal.dealPrice}</span>
+                         <span className="text-sm text-gray-500 line-through decoration-red-500/50">Rs. {deal.originalPrice}</span>
+                       </div>
+                       <span className="text-xs text-green-400 font-medium">Save {calculateSavings(deal.originalPrice, deal.dealPrice)}%</span>
+                     </div>
+                   }
+                   
+                   bottomContent={
+                     <button 
+                       onClick={() => setViewingDeal(deal)}
+                       className="text-xs font-medium text-gray-500 flex items-center gap-2 bg-gray-900/50 py-1.5 px-3 rounded-lg w-fit hover:bg-gray-800 hover:text-gray-300 transition-colors cursor-pointer"
+                     >
+                       <Package size={12} />
+                       {deal.products?.length || 0} items included
+                     </button>
+                   }
+                />
               ))}
            </div>
         )}
