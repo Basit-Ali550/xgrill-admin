@@ -52,6 +52,8 @@ export default function DashboardPage() {
       totalLoss: 0,
       totalCustomers: 0,
       activeDeals: 0,
+      dealsSold: 0,
+      totalOrders: 0,
       totalDiscountGiven: 0
   });
 
@@ -113,8 +115,8 @@ export default function DashboardPage() {
     
     // Operations
     { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: Users, color: "#14b8a6", bgColor: "rgba(20, 184, 166, 0.2)" },
-    { title: "Active Deals", value: (dashboardStats?.activeDeals || 0).toLocaleString(), icon: Ticket, color: "#d946ef", bgColor: "rgba(217, 70, 239, 0.2)" },
-    { title: "Total Orders", value: orders?.length || 0, icon: ClipboardList, color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Deals Sold", value: (dashboardStats?.dealsSold || 0).toLocaleString(), icon: Ticket, color: "#d946ef", bgColor: "rgba(217, 70, 239, 0.2)" },
+    { title: "Total Orders", value: (dashboardStats?.totalOrders || 0).toLocaleString(), icon: ClipboardList, color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
     { title: "Total Products", value: products?.length || 0, icon: Package, color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },
     { title: "Low Stock Items", value: allLowStock.length, icon: AlertTriangle, color: "#f87171", bgColor: "rgba(239, 68, 68, 0.2)" },
   ];
