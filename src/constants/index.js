@@ -7,6 +7,7 @@ export const ORDER_STATUS_COLORS = {
   PREPARED: { bg: "rgba(59, 130, 246, 0.2)", color: "#60a5fa", label: "Prepared" },
   OUT_FOR_DELIVERY: { bg: "rgba(249, 115, 22, 0.2)", color: "#fb923c", label: "Out for Delivery" },
   DELIVERED: { bg: "rgba(34, 197, 94, 0.2)", color: "#4ade80", label: "Delivered" },
+  COMPLETED: { bg: "rgba(20, 184, 166, 0.2)", color: "#2dd4bf", label: "Completed ✅" },
   CANCELLED: { bg: "rgba(239, 68, 68, 0.2)", color: "#f87171", label: "Cancelled" },
 };
 
@@ -28,6 +29,7 @@ export const ORDER_STATUSES = [
   "PREPARED",
   "OUT_FOR_DELIVERY",
   "DELIVERED",
+  "COMPLETED",
   "CANCELLED",
 ];
 

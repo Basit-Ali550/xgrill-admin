@@ -16,7 +16,7 @@ import KanbanBoard from "@/components/orders/KanbanBoard";
 
 const { RangePicker } = DatePicker;
 
-const KANBAN_STATUSES = ["PENDING", "PREPARING", "PREPARED", "OUT_FOR_DELIVERY", "DELIVERED", "CANCELLED"];
+const KANBAN_STATUSES = ["PENDING", "PREPARING", "PREPARED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED", "CANCELLED"];
 
 export default function OrdersPage() {
   const { orders, loading, updateOrderStatus } = useOrders();

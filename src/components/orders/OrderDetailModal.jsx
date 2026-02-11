@@ -344,7 +344,7 @@ export default function OrderDetailModal({
           />
         </div>
 
-        {order.status !== "DELIVERED" && order.status !== "CANCELLED" && (
+        {order.status !== "COMPLETED" && order.status !== "CANCELLED" && (
           <div className="flex gap-2 pt-2">
             {order.status === "PENDING" && (
               <Button
@@ -376,6 +376,14 @@ export default function OrderDetailModal({
                 className="flex-1 bg-green-600 hover:bg-green-500"
               >
                 Mark Delivered
+              </Button>
+            )}
+            {order.status === "DELIVERED" && !isChef && (
+              <Button
+                onClick={() => onStatusChange(order.id, "COMPLETED")}
+                className="flex-1 bg-teal-600 hover:bg-teal-500"
+              >
+                ✅ Complete — Payment Done
               </Button>
             )}
             {!isChef && (
