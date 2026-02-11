@@ -31,6 +31,7 @@ import {
   MapPin,
   ShoppingBag,
   NotebookPen,
+  Eye,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -55,7 +56,8 @@ export default function ManualOrderPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
   const [activeUnit, setActiveUnit] = useState("ALL");
-  const [activeSize, setActiveSize] = useState("ALL");
+  const [activeSize, setActiveSize] = useState('ALL'); // For Products/Inventory
+  const [viewDeal, setViewDeal] = useState(null); // For Deal Modal
   const [filterType, setFilterType] = useState("PRODUCT"); 
   
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
@@ -136,18 +138,32 @@ export default function ManualOrderPage() {
     }
   };
 
+  const PriceDisplay = ({ price, className = "", showCurrency = true }) => {
+    const val = parseFloat(price || 0);
+    const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(3);
+    const [whole, decimal] = formatted.split('.');
+    
+    return (
+      <span className={`inline-flex items-baseline ${className}`}>
+        {showCurrency && <span className="text-[0.7em] mr-0.5 opacity-70">Rs.</span>}
+        <span>{whole}</span>
+        {decimal && <span className="text-[0.6em] ml-0.5 opacity-70">.{decimal}</span>}
+      </span>
+    );
+  };
+
   const addToCart = (item, type) => {
     setCart((prev) => {
       const existing = prev.find(
         (i) =>
-          (type === "product" && i.productId === item.id) ||
+          (type === "product" && i.productId === (item.productId || item.id) && i.size === item.size) ||
           (type === "inventory" && i.productId === item.id) ||
           (type === "deal" && i.dealId === item.id)
       );
 
       if (existing) {
         return prev.map((i) =>
-          (type === "product" && i.productId === item.id) ||
+          (type === "product" && i.productId === (item.productId || item.id) && i.size === item.size) ||
           (type === "inventory" && i.productId === item.id) ||
           (type === "deal" && i.dealId === item.id)
             ? { ...i, quantity: i.quantity + 1 }
@@ -158,12 +174,13 @@ export default function ManualOrderPage() {
       return [
         ...prev,
         {
-          productId: type === "product" || type === "inventory" ? item.id : undefined,
+          productId: type === "product" ? (item.productId || item.id) : (type === "inventory" ? item.id : undefined),
           dealId: type === "deal" ? item.id : undefined,
           name: item.name,
           price: type === "deal" ? item.dealPrice : item.basePrice || item.price,
           image: item.image,
           quantity: 1,
+          size: item.size, // Add size
           type,
         },
       ];
@@ -201,6 +218,7 @@ export default function ManualOrderPage() {
           productId: item.productId,
           dealId: item.dealId,
           quantity: item.quantity,
+          size: item.size, // Pass size to backend
         })),
         customerId: selectedUser.id,
         notes,
@@ -277,15 +295,33 @@ export default function ManualOrderPage() {
 
     // Collect Data based on Type
     if (filterType === "ALL" || filterType === "PRODUCT") {
+      // Process products (flatten variants)
       items = [
         ...items,
         ...products
           .filter((p) => p.isActive)
-          .map((p) => ({
-            ...p,
-            type: "product",
-            price: p.basePrice || p.price,
-          })),
+          .flatMap((p) => {
+             // If product has variants, create an item for each variant
+             if (p.variants && p.variants.length > 0) {
+                return p.variants.map((v) => ({
+                   ...p,
+                   id: `${p.id}-${v.size}`, // Unique ID for grid
+                   productId: p.id,
+                   name: `${p.name} (${v.size})`,
+                   price: v.price,
+                   size: v.size,
+                   type: "product",
+                   image: p.image // Keep product image
+                }));
+             }
+             // Otherwise return base product
+             return [{
+                ...p,
+                type: "product",
+                price: p.basePrice || p.price,
+                productId: p.id
+             }];
+          }),
       ];
     }
     
@@ -576,18 +612,41 @@ export default function ManualOrderPage() {
                       </button>
                     </div>
                     <div className="p-4">
-                      <h3 className="font-semibold text-white line-clamp-2 mb-2 h-12">
-                        {item.name}
-                      </h3>
-                      <div className="flex items-center justify-between">
-                        <span className="text-xl font-bold text-orange-400">
-                          Rs. {item.price.toFixed(3)}
-                        </span>
+                      <div className="flex justify-between items-start gap-2 mb-1">
+                        <h3 className="font-semibold text-white line-clamp-2 leading-tight">
+                           {item.name}
+                        </h3>
                         {item.category && (
-                          <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-gray-700/50 px-2 py-1 rounded">
+                          <span className="shrink-0 text-[10px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
                             {item.category}
                           </span>
                         )}
+                      </div>
+                      
+                      {/* Deal Contents Button */}
+                      {item.type === "deal" && item.products && (
+                         <div className="mb-2">
+                           <button 
+                             onClick={(e) => { e.stopPropagation(); setViewDeal(item); }}
+                             className="flex items-center gap-1 text-[10px] bg-gray-700/50 hover:bg-gray-700 text-blue-300 px-2 py-1 rounded border border-blue-500/20 transition-colors"
+                           >
+                             <Eye size={12} />
+                             View Items
+                           </button>
+                         </div>
+                      )}
+
+                      <div className="flex items-center justify-between mt-auto pt-2">
+                        <div className="flex items-center gap-2">
+                          <span className="text-xl font-bold text-orange-400">
+                            <PriceDisplay price={item.price} />
+                          </span>
+                           {item.size && (
+                             <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-orange-500/10 text-orange-400 border border-orange-500/20 uppercase tracking-wide">
+                               {item.size}
+                             </span>
+                           )}
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -779,11 +838,15 @@ export default function ManualOrderPage() {
                   <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
                       <div className="flex justify-between items-start gap-2">
                         <h4 className="font-medium text-sm text-gray-200 line-clamp-1 leading-tight">{item.name}</h4>
-                        <span className="font-bold text-white text-sm whitespace-nowrap">Rs. {(item.price * item.quantity).toFixed(3)}</span>
+                        <span className="font-bold text-white text-sm whitespace-nowrap">
+                          <PriceDisplay price={item.price * item.quantity} />
+                        </span>
                       </div>
                       
                       <div className="flex items-end justify-between">
-                        <p className="text-[11px] text-gray-500">Rs. {item.price.toFixed(3)} x {item.quantity}</p>
+                        <p className="text-[11px] text-gray-500 flex items-center gap-1">
+                          <PriceDisplay price={item.price} /> x {item.quantity}
+                        </p>
                       
                       <div className="flex items-center gap-1 bg-gray-950 rounded-lg border border-gray-800 p-0.5 shadow-sm">
                         <button 
@@ -816,8 +879,7 @@ export default function ManualOrderPage() {
               <div>
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Payable</p>
                 <p className="text-3xl font-bold text-white mt-0.5">
-                  <span className="text-xl text-gray-500 mr-1">Rs.</span>
-                  {calculateTotal().toFixed(3)}
+                  <PriceDisplay price={calculateTotal()} />
                 </p>
               </div>
             </div>
@@ -851,6 +913,65 @@ export default function ManualOrderPage() {
       {/* Click outside listener for user dropdown */}
       {isUserDropdownOpen && (
         <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
+      )}
+
+      {/* Deal View Modal */}
+      {viewDeal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setViewDeal(null)}>
+          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
+            <div className="relative h-40 bg-gray-800">
+              {viewDeal.image ? (
+                <Image src={viewDeal.image} alt={viewDeal.name} fill className="object-cover" />
+              ) : (
+                <div className="w-full h-full flex items-center justify-center">
+                  <Tag size={48} className="text-gray-600" />
+                </div>
+              )}
+              <button 
+                onClick={() => setViewDeal(null)}
+                className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className="p-5">
+              <h3 className="text-xl font-bold text-white mb-1">{viewDeal.name}</h3>
+              <p className="text-orange-400 font-bold text-lg mb-4">
+                <PriceDisplay price={viewDeal.price} />
+              </p>
+              
+              <div className="space-y-3">
+                <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Includes</h4>
+                <div className="space-y-2">
+                  {viewDeal.products?.map((id, idx) => {
+                    const prod = products.find(p => p.id === id) || inventoryProducts.find(p => p.id === id);
+                    return (
+                      <div key={idx} className="flex items-center gap-3 bg-gray-800/50 p-2 rounded-lg border border-gray-800">
+                        <div className="h-8 w-8 rounded bg-gray-800 flex items-center justify-center shrink-0">
+                          {prod?.image ? (
+                             <div className="relative h-full w-full rounded overflow-hidden">
+                               <Image src={prod.image} alt={prod.name} fill className="object-cover" />
+                             </div>
+                          ) : (
+                             <Utensils size={14} className="text-gray-500" />
+                          )}
+                        </div>
+                        <span className="text-gray-200 text-sm">{prod?.name || "Unknown Item"}</span>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+              
+              <Button 
+                className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white"
+                onClick={() => { addToCart(viewDeal, "deal"); setViewDeal(null); }}
+              >
+                Add Deal to Cart
+              </Button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

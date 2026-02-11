@@ -30,6 +30,20 @@ import {
 
 const { RangePicker } = DatePicker;
 
+const PriceDisplay = ({ price, className = "" }) => {
+  const val = parseFloat(price || 0);
+  const formatted = val % 1 === 0 ? val.toFixed(0) : val.toFixed(3);
+  const [whole, decimal] = formatted.split('.');
+  
+  return (
+    <span className={`inline-flex items-baseline ${className}`}>
+      <span className="text-[0.6em] mr-0.5 opacity-70">Rs.</span>
+      <span>{whole}</span>
+      {decimal && <span className="text-[0.6em] ml-0.5 opacity-70">.{decimal}</span>}
+    </span>
+  );
+};
+
 export default function DashboardPage() {
   const { orders } = useOrders();
   const { lowStockItems: productLowStock } = useInventory();
@@ -88,7 +102,7 @@ export default function DashboardPage() {
   const ingredientLowStock = ingredients?.filter(
     (item) => item.stock <= item.lowStockThreshold
   ) || [];
-
+  
   // Combine alerts
   const allLowStock = [
     ...productLowStock.map(item => ({ ...item, type: 'Product', name: item.product?.name, category: item.product?.category })),
@@ -99,19 +113,19 @@ export default function DashboardPage() {
     // Financials
     { 
       title: startDate === endDate && startDate === today ? "Today's Revenue" : "Revenue", 
-      value: `Rs. ${(dashboardStats?.revenue || 0).toFixed(3)}`, 
+      value: <PriceDisplay price={dashboardStats?.revenue} />, 
       icon: DollarSign, 
       color: "#10b981", 
       bgColor: "rgba(16, 185, 129, 0.2)" 
     },
-    { title: "COGS (Product Cost)", value: `Rs. ${(dashboardStats?.cogs || 0).toFixed(3)}`, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
-    { title: "Total Profit", value: `Rs. ${(dashboardStats?.netProfit || 0).toFixed(3)}`, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
+    { title: "COGS (Product Cost)", value: <PriceDisplay price={dashboardStats?.cogs} />, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
+    { title: "Total Profit", value: <PriceDisplay price={dashboardStats?.netProfit} />, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
     
     // Inventory & Stock
-    { title: "Investment Added", value: `Rs. ${(dashboardStats?.investmentAdded || 0).toFixed(3)}`, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
-    { title: "Current Stock Value", value: `Rs. ${(dashboardStats?.currentInvestment || 0).toFixed(3)}`, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
-    { title: "Loss (Waste)", value: `Rs. ${(Math.abs(dashboardStats?.totalLoss || 0)).toFixed(3)}`, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
-    { title: "Discount Given", value: `Rs. ${(dashboardStats?.totalDiscountGiven || 0).toFixed(3)}`, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
+    { title: "Investment Added", value: <PriceDisplay price={dashboardStats?.investmentAdded} />, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Current Stock Value", value: <PriceDisplay price={dashboardStats?.currentInvestment} />, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
+    { title: "Loss (Waste)", value: <PriceDisplay price={Math.abs(dashboardStats?.totalLoss || 0)} />, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
+    { title: "Discount Given", value: <PriceDisplay price={dashboardStats?.totalDiscountGiven} />, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
     
     // Operations
     { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: Users, color: "#14b8a6", bgColor: "rgba(20, 184, 166, 0.2)" },
@@ -219,7 +233,9 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <StatusBadge status={order.status} />
-                    <p className="text-sm text-orange-400 mt-1">Rs. {parseFloat(order.totalAmount || 0).toFixed(3)}</p>
+                    <div className="mt-1 font-medium text-orange-400">
+                      <PriceDisplay price={order.totalAmount} />
+                    </div>
                   </div>
                 </div>
               ))}
@@ -250,7 +266,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-red-400">
-                      {item.type === 'Ingredient' ? parseFloat(item.stock).toFixed(3) : parseFloat(item.quantity).toFixed(3)}
+                      {item.type === 'Ingredient' ? parseFloat(item.stock).toFixed(3) : parseFloat(item.quantity).toFixed(0)}
                       {item.type === 'Ingredient' && <span className="text-sm font-normal text-gray-500 ml-1">{item.unit}</span>}
                     </p>
                     <p className="text-xs text-gray-500">Threshold: {parseFloat(item.lowStockThreshold).toFixed(3)}</p>
