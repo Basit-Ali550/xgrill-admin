@@ -1,10 +1,10 @@
-"use client";
-import { useState, useEffect, useCallback } from "react";
 import {
   getDealsAction,
   createDealAction,
   deleteDealAction,
+  updateDealAction,
 } from "@/app/actions/deals";
+import { useState, useCallback, useEffect } from "react";
 
 export function useDeals() {
   const [deals, setDeals] = useState([]);
@@ -39,6 +39,14 @@ export function useDeals() {
     return result;
   };
 
+  const updateDeal = async (id, dealData) => {
+    const result = await updateDealAction(id, dealData);
+    if (result.success) {
+      setDeals((prev) => prev.map((deal) => (deal.id === id ? result.data : deal)));
+    }
+    return result;
+  };
+
   const deleteDeal = async (id) => {
     const result = await deleteDealAction(id);
     if (result.success) {
@@ -52,6 +60,7 @@ export function useDeals() {
     loading,
     error,
     createDeal,
+    updateDeal,
     deleteDeal,
     refetch: fetchDeals,
   };
