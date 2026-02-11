@@ -56,9 +56,9 @@ export default function ProductsPage() {
   const getPriceRange = (product) => {
     if (product.variants?.length > 1) {
       const prices = product.variants.map(v => v.price).sort((a, b) => a - b);
-      return `Rs. ${prices[0]} - ${prices[prices.length - 1]}`;
+      return `Rs. ${prices[0].toFixed(3)} - ${prices[prices.length - 1].toFixed(3)}`;
     }
-    return `Rs. ${getDisplayPrice(product)}`;
+    return `Rs. ${getDisplayPrice(product).toFixed(3)}`;
   };
 
   return (
@@ -109,7 +109,7 @@ export default function ProductsPage() {
                       <div className="flex flex-wrap gap-1">
                         {product.variants.map((variant) => (
                           <span key={variant.size} className={`text-xs px-2 py-1 rounded ${variant.isDefault ? 'bg-orange-500/20 text-orange-400 border border-orange-500/30' : 'bg-gray-700/50 text-gray-400'}`}>
-                            {variant.size}: Rs.{variant.price}
+                            {variant.size}: Rs.{variant.price.toFixed(3)}
                           </span>
                         ))}
                       </div>

@@ -3,7 +3,10 @@ import React, { useState, useMemo, useEffect } from "react";
 import { 
   ShoppingBag, 
   Search,
+  Plus
 } from "lucide-react";
+import Link from "next/link";
+import { Button } from "@/components/ui/button";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useOrders } from "@/hooks/useOrders";
@@ -16,7 +19,6 @@ import KanbanBoard from "@/components/orders/KanbanBoard";
 
 const { RangePicker } = DatePicker;
 
-const KANBAN_STATUSES = ["PENDING", "PREPARING", "PREPARED", "OUT_FOR_DELIVERY", "DELIVERED", "COMPLETED", "CANCELLED"];
 
 export default function OrdersPage() {
   const { orders, loading, updateOrderStatus } = useOrders();
@@ -121,6 +123,11 @@ export default function OrdersPage() {
         </div>
         
         <div className="flex gap-3 w-full lg:w-auto">
+           <Link href="/dashboard/orders/manual">
+             <Button className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-900/20">
+               <Plus size={18} className="mr-2" /> Manual Order
+             </Button>
+           </Link>
           <div className="relative flex-1 lg:w-48">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
             <input

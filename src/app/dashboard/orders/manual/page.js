@@ -54,9 +54,14 @@ export default function ManualOrderPage() {
   // Filter State
   const [searchQuery, setSearchQuery] = useState("");
   const [activeCategory, setActiveCategory] = useState("ALL");
-  const [filterType, setFilterType] = useState("ALL");
+  const [activeUnit, setActiveUnit] = useState("ALL");
+  const [activeSize, setActiveSize] = useState("ALL");
+  const [filterType, setFilterType] = useState("PRODUCT"); 
+  
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
+  const [isUnitOpen, setIsUnitOpen] = useState(false);
+  const [isSizeOpen, setIsSizeOpen] = useState(false);
 
   // User Search State
   const [userSearch, setUserSearch] = useState("");
@@ -231,19 +236,46 @@ export default function ManualOrderPage() {
 
   const currentType = typeOptions.find(f => f.key === filterType);
 
-  // Categories
+  // Derived Data for Filters
+  
   const categories = useMemo(() => {
-    const allCategories = [
-      ...products.filter((p) => p.isActive).map((p) => p.category),
-      ...inventoryProducts.map((p) => p.category),
-    ].filter(Boolean);
-    return ["ALL", ...new Set(allCategories)];
-  }, [products, inventoryProducts]);
+    let cats = [];
+    if (filterType === "PRODUCT") {
+       cats = products.filter(p => p.isActive).map(p => p.category);
+    } else if (filterType === "INVENTORY") {
+       cats = inventoryProducts.map(p => p.category);
+    } else {
+       // For ALL or DEAL, maybe show combined or none?
+       // User asked for specific categories per type.
+       // Combining for ALL:
+       cats = [...products.map(p => p.category), ...inventoryProducts.map(p => p.category)];
+    }
+    return ["ALL", ...new Set(cats.filter(Boolean))];
+  }, [products, inventoryProducts, filterType]);
+
+  const units = useMemo(() => {
+    if (filterType !== 'INVENTORY') return [];
+    // Extract unique unitTypes
+    const allUnits = inventoryProducts.map(p => p.unitType).filter(Boolean);
+    return ["ALL", ...new Set(allUnits)];
+  }, [inventoryProducts, filterType]);
+
+  const sizes = useMemo(() => {
+     let allSizes = [];
+     if (filterType === 'PRODUCT') {
+        allSizes = products.flatMap(p => p.variants?.map(v => v.size)).filter(Boolean);
+     } else if (filterType === 'INVENTORY') {
+        // Inventory items might have sizes in variants too
+        allSizes = inventoryProducts.flatMap(p => p.variants?.map(v => v.size)).filter(Boolean);
+     }
+     return ["ALL", ...new Set(allSizes)];
+  }, [products, inventoryProducts, filterType]);
 
   // Filter Logic
   const filteredItems = useMemo(() => {
     let items = [];
 
+    // Collect Data based on Type
     if (filterType === "ALL" || filterType === "PRODUCT") {
       items = [
         ...items,
@@ -277,15 +309,33 @@ export default function ManualOrderPage() {
       ];
     }
 
+    // Apply Filters
     return items.filter((item) => {
+      // 1. Search
       const matchesSearch = item.name
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
+
+      // 2. Category
       const matchesCategory =
         activeCategory === "ALL" || item.category === activeCategory;
-      return matchesSearch && matchesCategory;
+
+      // 3. Unit (Only for Inventory)
+      let matchesUnit = true;
+      if (filterType === 'INVENTORY' && activeUnit !== 'ALL') {
+         matchesUnit = item.unitType === activeUnit;
+      }
+
+      // 4. Size (For Product and Inventory)
+      let matchesSize = true;
+      if ((filterType === 'PRODUCT' || filterType === 'INVENTORY') && activeSize !== 'ALL') {
+         // Check if item has variants with this size
+         matchesSize = item.variants?.some(v => v.size === activeSize);
+      }
+
+      return matchesSearch && matchesCategory && matchesUnit && matchesSize;
     });
-  }, [products, inventoryProducts, deals, searchQuery, activeCategory, filterType]);
+  }, [products, inventoryProducts, deals, searchQuery, activeCategory, filterType, activeUnit, activeSize]);
 
   const getItemBadge = (type) => {
     switch(type) {
@@ -303,9 +353,9 @@ export default function ManualOrderPage() {
        
 
         {/* Filters Row */}
-        <div className="flex gap-3 items-center">
+        <div className="flex gap-3 items-center flex-wrap">
           {/* Search */}
-          <div className="relative flex-1 max-w-xs">
+          <div className="relative flex-1 max-w-xs min-w-[200px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
             <Input
               placeholder="Search..."
@@ -315,80 +365,164 @@ export default function ManualOrderPage() {
             />
           </div>
 
-          {/* Category Dropdown */}
-          <div className="relative">
-            <button
-              onClick={() => { setIsCategoryOpen(!isCategoryOpen); setIsTypeOpen(false); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[140px]"
-            >
-              <Filter size={16} className="text-blue-400" />
-              <span className="font-medium text-white text-sm">{activeCategory}</span>
-              <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isCategoryOpen ? "rotate-180" : ""}`} />
-            </button>
-            
-            {isCategoryOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsCategoryOpen(false)} />
-                <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto">
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => {
-                        setActiveCategory(cat);
-                        setIsCategoryOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
-                        activeCategory === cat ? "bg-gray-700/50" : ""
-                      }`}
-                    >
-                      <span className={activeCategory === cat ? "text-white font-medium" : "text-gray-300"}>
-                        {cat}
-                      </span>
-                      {activeCategory === cat && <Check size={14} className="text-blue-400" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
-          </div>
-
           {/* Type Dropdown */}
           <div className="relative">
             <button
-              onClick={() => { setIsTypeOpen(!isTypeOpen); setIsCategoryOpen(false); }}
-              className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[160px]"
-            >
-              {currentType?.icon && <currentType.icon size={16} className="text-orange-400" />}
-              <span className="font-medium text-white text-sm">{currentType?.label}</span>
-              <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isTypeOpen ? "rotate-180" : ""}`} />
-            </button>
-            
-            {isTypeOpen && (
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => setIsTypeOpen(false)} />
-                <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
-                  {typeOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      onClick={() => {
-                        setFilterType(option.key);
-                        setIsTypeOpen(false);
-                      }}
-                      className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
-                        filterType === option.key ? "bg-gray-700/50" : ""
-                      }`}
-                    >
-                      <option.icon size={16} className="text-gray-400" />
-                      <span className={filterType === option.key ? "text-white font-medium" : "text-gray-300"}>
-                        {option.label}
-                      </span>
-                      {filterType === option.key && <Check size={14} className="ml-auto text-orange-400" />}
-                    </button>
-                  ))}
-                </div>
-              </>
-            )}
+               onClick={() => { setIsTypeOpen(!isTypeOpen); setIsCategoryOpen(false); setIsUnitOpen(false); setIsSizeOpen(false); }}
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[150px]"
+             >
+               {currentType?.icon && <currentType.icon size={16} className="text-orange-400" />}
+               <span className="font-medium text-white text-sm">{currentType?.label}</span>
+               <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isTypeOpen ? "rotate-180" : ""}`} />
+             </button>
+             
+             {isTypeOpen && (
+               <>
+                 <div className="fixed inset-0 z-40" onClick={() => setIsTypeOpen(false)} />
+                 <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
+                   {typeOptions.map((option) => (
+                     <button
+                       key={option.key}
+                       onClick={() => {
+                         setFilterType(option.key);
+                         // Reset other filters
+                         setActiveCategory("ALL");
+                         setActiveUnit("ALL");
+                         setActiveSize("ALL");
+                         setIsTypeOpen(false);
+                       }}
+                       className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                         filterType === option.key ? "bg-gray-700/50" : ""
+                       }`}
+                     >
+                       <option.icon size={16} className="text-gray-400" />
+                       <span className={filterType === option.key ? "text-white font-medium" : "text-gray-300"}>
+                         {option.label}
+                       </span>
+                       {filterType === option.key && <Check size={14} className="ml-auto text-orange-400" />}
+                     </button>
+                   ))}
+                 </div>
+               </>
+             )}
           </div>
+
+          {/* Category Dropdown (Show for PRODUCT/INVENTORY/ALL) */}
+          {filterType !== 'DEAL' && categories.length > 1 && (
+            <div className="relative">
+              <button
+                onClick={() => { setIsCategoryOpen(!isCategoryOpen); setIsTypeOpen(false); setIsUnitOpen(false); setIsSizeOpen(false); }}
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[140px]"
+              >
+                <Filter size={16} className="text-blue-400" />
+                <span className="font-medium text-white text-sm">{activeCategory}</span>
+                <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isCategoryOpen ? "rotate-180" : ""}`} />
+              </button>
+              
+              {isCategoryOpen && (
+                <>
+                  <div className="fixed inset-0 z-40" onClick={() => setIsCategoryOpen(false)} />
+                  <div className="absolute left-0 top-full mt-2 w-48 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                    {categories.map((cat) => (
+                      <button
+                        key={cat}
+                        onClick={() => {
+                          setActiveCategory(cat);
+                          setIsCategoryOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                          activeCategory === cat ? "bg-gray-700/50" : ""
+                        }`}
+                      >
+                        <span className={activeCategory === cat ? "text-white font-medium" : "text-gray-300"}>
+                          {cat}
+                        </span>
+                        {activeCategory === cat && <Check size={14} className="text-blue-400" />}
+                      </button>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+
+          {/* Unit Dropdown (Show for INVENTORY) */}
+          {filterType === 'INVENTORY' && units.length > 1 && (
+             <div className="relative">
+             <button
+               onClick={() => { setIsUnitOpen(!isUnitOpen); setIsCategoryOpen(false); setIsTypeOpen(false); setIsSizeOpen(false); }}
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px]"
+             >
+               <Package size={16} className="text-green-400" />
+               <span className="font-medium text-white text-sm">{activeUnit === 'ALL' ? 'Unit' : activeUnit}</span>
+               <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isUnitOpen ? "rotate-180" : ""}`} />
+             </button>
+             
+             {isUnitOpen && (
+               <>
+                 <div className="fixed inset-0 z-40" onClick={() => setIsUnitOpen(false)} />
+                 <div className="absolute left-0 top-full mt-2 w-40 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                   {units.map((unit) => (
+                     <button
+                       key={unit}
+                       onClick={() => {
+                         setActiveUnit(unit);
+                         setIsUnitOpen(false);
+                       }}
+                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                         activeUnit === unit ? "bg-gray-700/50" : ""
+                       }`}
+                     >
+                       <span className={activeUnit === unit ? "text-white font-medium" : "text-gray-300"}>
+                         {unit}
+                       </span>
+                       {activeUnit === unit && <Check size={14} className="text-green-400" />}
+                     </button>
+                   ))}
+                 </div>
+               </>
+             )}
+           </div>
+          )}
+
+          {/* Size Dropdown (Show for PRODUCT & INVENTORY) */}
+          {(filterType === 'PRODUCT' || filterType === 'INVENTORY') && sizes.length > 1 && (
+             <div className="relative">
+             <button
+               onClick={() => { setIsSizeOpen(!isSizeOpen); setIsCategoryOpen(false); setIsTypeOpen(false); setIsUnitOpen(false); }}
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px]"
+             >
+               <Layers size={16} className="text-purple-400" />
+               <span className="font-medium text-white text-sm">{activeSize === 'ALL' ? 'Size' : activeSize}</span>
+               <ChevronDown size={14} className={`text-gray-400 ml-auto transition-transform ${isSizeOpen ? "rotate-180" : ""}`} />
+             </button>
+             
+             {isSizeOpen && (
+               <>
+                 <div className="fixed inset-0 z-40" onClick={() => setIsSizeOpen(false)} />
+                 <div className="absolute left-0 top-full mt-2 w-40 bg-gray-800 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                   {sizes.map((size) => (
+                     <button
+                       key={size}
+                       onClick={() => {
+                         setActiveSize(size);
+                         setIsSizeOpen(false);
+                       }}
+                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                         activeSize === size ? "bg-gray-700/50" : ""
+                       }`}
+                     >
+                       <span className={activeSize === size ? "text-white font-medium" : "text-gray-300"}>
+                         {size}
+                       </span>
+                       {activeSize === size && <Check size={14} className="text-purple-400" />}
+                     </button>
+                   ))}
+                 </div>
+               </>
+             )}
+           </div>
+          )}
         </div>
 
         {/* Items Grid - 3 cards per row */}
@@ -447,7 +581,7 @@ export default function ManualOrderPage() {
                       </h3>
                       <div className="flex items-center justify-between">
                         <span className="text-xl font-bold text-orange-400">
-                          Rs. {item.price}
+                          Rs. {item.price.toFixed(3)}
                         </span>
                         {item.category && (
                           <span className="text-[10px] uppercase tracking-wider text-gray-500 bg-gray-700/50 px-2 py-1 rounded">
@@ -643,13 +777,13 @@ export default function ManualOrderPage() {
                     )}
                   </div>
                   <div className="flex-1 min-w-0 flex flex-col justify-between py-0.5">
-                    <div className="flex justify-between items-start gap-2">
-                      <h4 className="font-medium text-sm text-gray-200 line-clamp-1 leading-tight">{item.name}</h4>
-                      <span className="font-bold text-white text-sm whitespace-nowrap">Rs. {item.price * item.quantity}</span>
-                    </div>
-                    
-                    <div className="flex items-end justify-between">
-                      <p className="text-[11px] text-gray-500">Rs. {item.price} x {item.quantity}</p>
+                      <div className="flex justify-between items-start gap-2">
+                        <h4 className="font-medium text-sm text-gray-200 line-clamp-1 leading-tight">{item.name}</h4>
+                        <span className="font-bold text-white text-sm whitespace-nowrap">Rs. {(item.price * item.quantity).toFixed(3)}</span>
+                      </div>
+                      
+                      <div className="flex items-end justify-between">
+                        <p className="text-[11px] text-gray-500">Rs. {item.price.toFixed(3)} x {item.quantity}</p>
                       
                       <div className="flex items-center gap-1 bg-gray-950 rounded-lg border border-gray-800 p-0.5 shadow-sm">
                         <button 
@@ -683,7 +817,7 @@ export default function ManualOrderPage() {
                 <p className="text-xs text-gray-500 uppercase font-bold tracking-wider">Total Payable</p>
                 <p className="text-3xl font-bold text-white mt-0.5">
                   <span className="text-xl text-gray-500 mr-1">Rs.</span>
-                  {calculateTotal()}
+                  {calculateTotal().toFixed(3)}
                 </p>
               </div>
             </div>

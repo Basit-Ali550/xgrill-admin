@@ -111,7 +111,7 @@ export default function IngredientsPage() {
                 isLowStock ? "text-red-400" : "text-green-400"
               }`}
             >
-              {stock}
+              {stock.toFixed(3)}
             </span>
           </div>
         );
@@ -123,7 +123,7 @@ export default function IngredientsPage() {
           <div className="text-center">Cost/Unit</div>
       ),
       cell: ({ row }) => (
-        <div className="text-center text-gray-400">Rs. {row.getValue("costPerUnit")}</div>
+        <div className="text-center text-gray-400">Rs. {parseFloat(row.getValue("costPerUnit") || 0).toFixed(3)}</div>
       ),
     },
     {
@@ -132,7 +132,7 @@ export default function IngredientsPage() {
           <div className="text-center">Threshold</div>
       ),
       cell: ({ row }) => (
-        <div className="text-center text-gray-500">{row.getValue("lowStockThreshold")}</div>
+        <div className="text-center text-gray-500">{parseFloat(row.getValue("lowStockThreshold") || 0).toFixed(3)}</div>
       ),
     },
     {

@@ -224,8 +224,8 @@ export default function DealsPage() {
                    priceDisplay={
                      <div>
                        <div className="flex items-baseline gap-2">
-                         <span className="text-xl font-bold text-white">Rs. {deal.dealPrice}</span>
-                         <span className="text-sm text-gray-500 line-through decoration-red-500/50">Rs. {deal.originalPrice}</span>
+                         <span className="text-xl font-bold text-white">Rs. {deal.dealPrice.toFixed(3)}</span>
+                         <span className="text-sm text-gray-500 line-through decoration-red-500/50">Rs. {deal.originalPrice.toFixed(3)}</span>
                        </div>
                        <span className="text-xs text-green-400 font-medium">Save {calculateSavings(deal.originalPrice, deal.dealPrice)}%</span>
                      </div>
@@ -299,13 +299,13 @@ export default function DealsPage() {
                   <div>
                     <p className="text-sm text-gray-400">Total Price</p>
                     <div className="flex items-baseline gap-2">
-                      <span className="text-3xl font-bold text-white">Rs. {viewingDeal.dealPrice}</span>
-                      <span className="text-sm text-gray-500 line-through">Rs. {viewingDeal.originalPrice}</span>
+                      <span className="text-3xl font-bold text-white">Rs. {viewingDeal.dealPrice.toFixed(3)}</span>
+                      <span className="text-sm text-gray-500 line-through">Rs. {viewingDeal.originalPrice.toFixed(3)}</span>
                     </div>
                   </div>
                   <div className="text-right">
                     <p className="text-xs text-gray-400">You Save</p>
-                    <p className="text-green-400 font-bold text-lg">Rs. {viewingDeal.originalPrice - viewingDeal.dealPrice}</p>
+                    <p className="text-green-400 font-bold text-lg">Rs. {(viewingDeal.originalPrice - viewingDeal.dealPrice).toFixed(3)}</p>
                   </div>
                </div>
 
@@ -363,7 +363,7 @@ export default function DealsPage() {
                          <div className="min-w-0 flex-1">
                            <div className="flex justify-between items-start">
                              <p className="font-medium text-white truncate pr-2">{item.name}</p>
-                             <p className="text-sm font-bold text-orange-400 whitespace-nowrap">Rs. {item.basePrice || item.price}</p>
+                             <p className="text-sm font-bold text-orange-400 whitespace-nowrap">Rs. {(item.basePrice || item.price || 0).toFixed(3)}</p>
                            </div>
                            <p className="text-xs text-gray-400">
                              {item.category || "Uncategorized"}

@@ -98,7 +98,7 @@ export default function InventoryPage() {
         const isSupply = row.original.product?.isServiceSupply;
         return (
           <span className="text-green-400 text-nowrap font-semibold">
-            {isSupply ? "N/A" : `Rs ${price?.toFixed(2) || "0.00"}`}
+            {isSupply ? "N/A" : `Rs ${price?.toFixed(3) || "0.000"}`}
           </span>
         );
       },
@@ -110,7 +110,7 @@ export default function InventoryPage() {
         const price = row.original.product?.purchasePrice;
         return (
           <span className="text-orange-400 text-nowrap font-semibold">
-             Rs {price?.toFixed(2) || "0.00"}
+             Rs {price?.toFixed(3) || "0.000"}
           </span>
         );
       },
@@ -185,7 +185,7 @@ export default function InventoryPage() {
         const isLowStock = item.quantity <= item.lowStockThreshold;
         return (
           <div className={`text-center text-2xl font-bold ${isLowStock ? "text-red-400" : "text-green-400"}`}>
-            {item.quantity}
+            {item.quantity.toFixed(3)}
           </div>
         );
       },
@@ -193,7 +193,7 @@ export default function InventoryPage() {
     {
       accessorKey: "lowStockThreshold",
       header: () => <div className="text-center">Threshold</div>,
-      cell: ({ row }) => <div className="text-center text-gray-500">{row.original.lowStockThreshold}</div>,
+      cell: ({ row }) => <div className="text-center text-gray-500">{parseFloat(row.original.lowStockThreshold || 0).toFixed(3)}</div>,
     },
 
     {

@@ -97,19 +97,19 @@ export default function DashboardPage() {
     // Financials
     { 
       title: startDate === endDate && startDate === today ? "Today's Revenue" : "Revenue", 
-      value: `Rs. ${(dashboardStats?.revenue || 0).toLocaleString()}`, 
+      value: `Rs. ${(dashboardStats?.revenue || 0).toFixed(3)}`, 
       icon: DollarSign, 
       color: "#10b981", 
       bgColor: "rgba(16, 185, 129, 0.2)" 
     },
-    { title: "COGS (Product Cost)", value: `Rs. ${Math.round(dashboardStats?.cogs || 0).toLocaleString()}`, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
-    { title: "Total Profit", value: `Rs. ${Math.round(dashboardStats?.netProfit || 0).toLocaleString()}`, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
+    { title: "COGS (Product Cost)", value: `Rs. ${(dashboardStats?.cogs || 0).toFixed(3)}`, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
+    { title: "Total Profit", value: `Rs. ${(dashboardStats?.netProfit || 0).toFixed(3)}`, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
     
     // Inventory & Stock
-    { title: "Investment Added", value: `Rs. ${Math.round(dashboardStats?.investmentAdded || 0).toLocaleString()}`, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
-    { title: "Current Stock Value", value: `Rs. ${Math.round(dashboardStats?.currentInvestment || 0).toLocaleString()}`, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
-    { title: "Loss (Waste)", value: `Rs. ${Math.round(dashboardStats?.totalLoss || 0).toLocaleString()}`, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
-    { title: "Discount Given", value: `Rs. ${Math.round(dashboardStats?.totalDiscountGiven || 0).toLocaleString()}`, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
+    { title: "Investment Added", value: `Rs. ${(dashboardStats?.investmentAdded || 0).toFixed(3)}`, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
+    { title: "Current Stock Value", value: `Rs. ${(dashboardStats?.currentInvestment || 0).toFixed(3)}`, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
+    { title: "Loss (Waste)", value: `Rs. ${(Math.abs(dashboardStats?.totalLoss || 0)).toFixed(3)}`, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
+    { title: "Discount Given", value: `Rs. ${(dashboardStats?.totalDiscountGiven || 0).toFixed(3)}`, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
     
     // Operations
     { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: Users, color: "#14b8a6", bgColor: "rgba(20, 184, 166, 0.2)" },
@@ -217,7 +217,7 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <StatusBadge status={order.status} />
-                    <p className="text-sm text-orange-400 mt-1">Rs. {order.totalAmount}</p>
+                    <p className="text-sm text-orange-400 mt-1">Rs. {parseFloat(order.totalAmount || 0).toFixed(3)}</p>
                   </div>
                 </div>
               ))}
@@ -248,10 +248,10 @@ export default function DashboardPage() {
                   </div>
                   <div className="text-right">
                     <p className="text-2xl font-bold text-red-400">
-                      {item.type === 'Ingredient' ? item.stock : item.quantity}
+                      {item.type === 'Ingredient' ? parseFloat(item.stock).toFixed(3) : parseFloat(item.quantity).toFixed(3)}
                       {item.type === 'Ingredient' && <span className="text-sm font-normal text-gray-500 ml-1">{item.unit}</span>}
                     </p>
-                    <p className="text-xs text-gray-500">Threshold: {item.lowStockThreshold}</p>
+                    <p className="text-xs text-gray-500">Threshold: {parseFloat(item.lowStockThreshold).toFixed(3)}</p>
                   </div>
                 </div>
               ))}
