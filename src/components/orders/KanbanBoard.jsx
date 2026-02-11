@@ -90,15 +90,23 @@ export function DraggableOrderCard({ order, onClick, isHighlighted }) {
         <div className="flex items-center gap-2 mb-3">
           <div className="flex-1 min-w-0">
             <p className="text-sm text-white font-medium truncate">
-              {order.user?.name || "Guest"}
+              {order.customerName || order.user?.name || "Guest"}
             </p>
             <p className="text-[11px] text-gray-500 truncate">
-              {order.phone || order.user?.phone || "No phone"}
+              {order.customerPhone ||
+                order.phone ||
+                order.user?.phone ||
+                "No phone"}
             </p>
             {order.address && (
               <p className="text-[10px] text-gray-400 truncate flex items-center gap-1 mt-0.5">
                 <span className="w-1 h-1 rounded-full bg-blue-500 shrink-0"></span>
                 {order.address}
+              </p>
+            )}
+            {order.sessionId && (
+              <p className="text-[10px] text-purple-400 font-bold bg-purple-500/10 px-1.5 py-0.5 rounded-full inline-flex items-center gap-1 mt-1 border border-purple-500/20">
+                🍽️ DINE-IN
               </p>
             )}
           </div>
@@ -148,10 +156,13 @@ export function OrderCardOverlay({ order }) {
       <div className="p-3">
         <div className="mb-2">
           <span className="text-sm text-gray-200 truncate font-bold block">
-            {order.user?.name || "Guest"}
+            {order.customerName || order.user?.name || "Guest"}
           </span>
           <span className="text-[10px] text-gray-400 block">
-            {order.phone || order.user?.phone || "No phone"}
+            {order.customerPhone ||
+              order.phone ||
+              order.user?.phone ||
+              "No phone"}
           </span>
           {order.address && (
             <p className="text-[10px] text-gray-500 truncate mt-0.5 border-l-2 border-blue-500 pl-1">

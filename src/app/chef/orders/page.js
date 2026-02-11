@@ -134,6 +134,8 @@ export default function ChefOrdersPage() {
         onClose={() => setSelectedOrder(null)}
         order={selectedOrder}
         onStatusChange={handleStatusChange}
+        onOrderSelect={(order) => setSelectedOrder(order)}
+        allOrders={orders}
         isChef={true}
       />
     </div>
