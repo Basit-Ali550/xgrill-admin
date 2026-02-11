@@ -2,7 +2,9 @@
 import { useState } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
+import { Edit, Trash2 } from "lucide-react";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -10,11 +12,24 @@ import { useProducts } from "@/hooks/useProducts";
 import AddProductModal from "@/components/products/AddProductModal";
 
 export default function ProductsPage() {
-  const { products, loading, deleteProduct } = useProducts();
+  const { products, loading, deleteProduct, updateProduct } = useProducts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleToggleStatus = async (product) => {
+    try {
+      const newStatus = !product.isActive;
+      const result = await updateProduct(product.id, { isActive: newStatus });
+      if (result.success) {
+        // toast.success(`Product ${newStatus ? 'activated' : 'deactivated'}`);
+        // No toast needed if real-time update reflects it, but user verification is good.
+      } 
+    } catch (error) {
+      console.error("Toggle error:", error);
+    }
+  };
 
   const handleDeleteConfirm = async () => {
     if (!deleteTarget) return;
@@ -79,7 +94,7 @@ export default function ProductsPage() {
                     )}
                     <div className="absolute top-2 right-2 flex gap-1">
                       {product.hasSizes && <Badge className="bg-blue-500/20 text-blue-400">Sizes</Badge>}
-                      <Badge className={product.isActive ? "bg-green-500/20 text-green-400" : "bg-gray-500/20 text-gray-400"}>
+                       <Badge className={`${product.isActive ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
                         {product.isActive ? "Active" : "Inactive"}
                       </Badge>
                     </div>
@@ -107,9 +122,32 @@ export default function ProductsPage() {
                     
                     <div className="flex items-center justify-between pt-3 border-t border-gray-700">
                       <span className="text-xl font-bold text-white">{getPriceRange(product)}</span>
-                      <div className="flex gap-1">
-                        <Button size="sm" variant="ghost" onClick={() => { setEditingProduct(product); setIsAddModalOpen(true); }} className="h-8 w-8 p-0 text-blue-400 hover:text-blue-300 hover:bg-blue-400/10 rounded-full">✏️</Button>
-                        <Button size="sm" variant="ghost" onClick={() => setDeleteTarget({ id: product.id, name: product.name })} className="h-8 w-8 p-0 text-red-400 hover:text-red-300 hover:bg-red-400/10 rounded-full">🗑️</Button>
+                      <div className="flex gap-2 items-center">
+                         {/* Status Switch */}
+                         <div className="flex items-center">
+                            <Switch 
+                              checked={product.isActive}
+                              onCheckedChange={() => handleToggleStatus(product)}
+                              className="h-5 w-9 data-[state=checked]:bg-green-500" 
+                            />
+                         </div>
+
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => { setEditingProduct(product); setIsAddModalOpen(true); }} 
+                          className="h-9 w-9 p-0 rounded-full bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
+                        >
+                          <Edit size={16} />
+                        </Button>
+                        <Button 
+                          size="sm" 
+                          variant="ghost" 
+                          onClick={() => setDeleteTarget({ id: product.id, name: product.name })} 
+                          className="h-9 w-9 p-0 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+                        >
+                          <Trash2 size={16} />
+                        </Button>
                       </div>
                     </div>
                   </div>
