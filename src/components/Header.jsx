@@ -115,7 +115,7 @@ export function Header({ title, toggleSidebar }) {
               setShowNotifications(!showNotifications);
               if (!showNotifications) markAsRead();
             }}
-            className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors relative outline-none"
+            className="p-2 rounded-full text-gray-400 hover:text-white hover:bg-gray-800 transition-colors relative outline-none cursor-pointer"
           >
             <Bell size={20} />
             {unreadCount > 0 && (
@@ -183,7 +183,7 @@ export function Header({ title, toggleSidebar }) {
 
         {/* User Profile */}
         <DropdownMenu>
-          <DropdownMenuTrigger className="group flex items-center gap-2 outline-none border border-gray-600 rounded-full p-1 pl-1 pr-3 hover:bg-gray-800 transition-colors">
+          <DropdownMenuTrigger className="group flex items-center gap-2 outline-none border border-gray-600 rounded-full p-1 pl-1 pr-3 hover:bg-gray-800 transition-colors cursor-pointer">
             <div className="h-8 w-8 rounded-full bg-orange-500/10 flex items-center justify-center border border-orange-500/20 text-orange-500">
               <User size={18} />
             </div>

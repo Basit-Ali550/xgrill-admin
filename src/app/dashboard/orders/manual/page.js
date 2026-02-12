@@ -405,7 +405,7 @@ export default function ManualOrderPage() {
           <div className="relative">
             <button
                onClick={() => { setIsTypeOpen(!isTypeOpen); setIsCategoryOpen(false); setIsUnitOpen(false); setIsSizeOpen(false); }}
-               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[150px]"
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[150px] cursor-pointer"
              >
                {currentType?.icon && <currentType.icon size={16} className="text-orange-400" />}
                <span className="font-medium text-white text-sm">{currentType?.label}</span>
@@ -427,7 +427,7 @@ export default function ManualOrderPage() {
                          setActiveSize("ALL");
                          setIsTypeOpen(false);
                        }}
-                       className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                       className={`w-full flex items-center gap-3 px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm cursor-pointer ${
                          filterType === option.key ? "bg-gray-700/50" : ""
                        }`}
                      >
@@ -448,7 +448,7 @@ export default function ManualOrderPage() {
             <div className="relative">
               <button
                 onClick={() => { setIsCategoryOpen(!isCategoryOpen); setIsTypeOpen(false); setIsUnitOpen(false); setIsSizeOpen(false); }}
-                className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[140px]"
+                className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[140px] cursor-pointer"
               >
                 <Filter size={16} className="text-blue-400" />
                 <span className="font-medium text-white text-sm">{activeCategory}</span>
@@ -466,7 +466,7 @@ export default function ManualOrderPage() {
                           setActiveCategory(cat);
                           setIsCategoryOpen(false);
                         }}
-                        className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                        className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm cursor-pointer ${
                           activeCategory === cat ? "bg-gray-700/50" : ""
                         }`}
                       >
@@ -487,7 +487,7 @@ export default function ManualOrderPage() {
              <div className="relative">
              <button
                onClick={() => { setIsUnitOpen(!isUnitOpen); setIsCategoryOpen(false); setIsTypeOpen(false); setIsSizeOpen(false); }}
-               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px]"
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px] cursor-pointer"
              >
                <Package size={16} className="text-green-400" />
                <span className="font-medium text-white text-sm">{activeUnit === 'ALL' ? 'Unit' : activeUnit}</span>
@@ -505,7 +505,7 @@ export default function ManualOrderPage() {
                          setActiveUnit(unit);
                          setIsUnitOpen(false);
                        }}
-                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm cursor-pointer ${
                          activeUnit === unit ? "bg-gray-700/50" : ""
                        }`}
                      >
@@ -526,7 +526,7 @@ export default function ManualOrderPage() {
              <div className="relative">
              <button
                onClick={() => { setIsSizeOpen(!isSizeOpen); setIsCategoryOpen(false); setIsTypeOpen(false); setIsUnitOpen(false); }}
-               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px]"
+               className="flex items-center gap-2 px-4 py-2.5 bg-gray-800/80 border border-gray-700/50 rounded-xl hover:bg-gray-700/50 transition-all min-w-[120px] cursor-pointer"
              >
                <Layers size={16} className="text-purple-400" />
                <span className="font-medium text-white text-sm">{activeSize === 'ALL' ? 'Size' : activeSize}</span>
@@ -544,7 +544,7 @@ export default function ManualOrderPage() {
                          setActiveSize(size);
                          setIsSizeOpen(false);
                        }}
-                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm ${
+                       className={`w-full flex items-center justify-between px-4 py-2.5 hover:bg-gray-700/50 transition-all text-sm cursor-pointer ${
                          activeSize === size ? "bg-gray-700/50" : ""
                        }`}
                      >
@@ -628,7 +628,7 @@ export default function ManualOrderPage() {
                          <div className="mb-2">
                            <button 
                              onClick={(e) => { e.stopPropagation(); setViewDeal(item); }}
-                             className="flex items-center gap-1 text-[10px] bg-gray-700/50 hover:bg-gray-700 text-blue-300 px-2 py-1 rounded border border-blue-500/20 transition-colors"
+                             className="flex items-center gap-1 text-[10px] bg-gray-700/50 hover:bg-gray-700 text-blue-300 px-2 py-1 rounded border border-blue-500/20 transition-colors cursor-pointer"
                            >
                              <Eye size={12} />
                              View Items

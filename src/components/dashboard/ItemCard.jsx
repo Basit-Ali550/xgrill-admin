@@ -74,7 +74,7 @@ export function ItemCard({
               <Switch
                 checked={isActive}
                 onCheckedChange={onToggleStatus}
-                className="h-5 w-9 data-[state=checked]:bg-green-500"
+                className="h-5 w-9 data-[state=checked]:bg-green-500 cursor-pointer"
               />
             </div>
 

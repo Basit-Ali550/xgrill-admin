@@ -212,7 +212,7 @@ export default function StaffPage() {
               </div>
               <div className="w-full md:w-48">
                 <select 
-                  className="w-full h-10 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500"
+                  className="w-full h-10 rounded-md border border-gray-700 bg-gray-800 px-3 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-orange-500 cursor-pointer"
                   value={roleFilter}
                   onChange={(e) => setRoleFilter(e.target.value)}
                 >

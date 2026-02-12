@@ -157,7 +157,7 @@ export default function DealsPage() {
                <div className="relative">
                   <button 
                     onClick={() => setIsFilterOpen(!isFilterOpen)}
-                    className="h-10 px-4 bg-gray-900 border border-gray-700 rounded-md flex items-center gap-2 text-sm font-medium hover:bg-gray-800 transition-colors"
+                    className="h-10 px-4 bg-gray-900 border border-gray-700 rounded-md flex items-center gap-2 text-sm font-medium hover:bg-gray-800 transition-colors cursor-pointer"
                   >
                     <Filter size={16} className={statusFilter !== 'ALL' ? "text-orange-500" : "text-gray-400"} />
                     <span>{statusFilter === 'ALL' ? 'All Status' : statusFilter === 'ACTIVE' ? 'Active' : 'Inactive'}</span>
@@ -172,7 +172,7 @@ export default function DealsPage() {
                              <button
                                 key={status}
                                 onClick={() => { setStatusFilter(status); setIsFilterOpen(false); }}
-                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700/50 flex justify-between items-center ${statusFilter === status ? 'text-white bg-gray-700/50' : 'text-gray-300'}`}
+                                className={`w-full text-left px-4 py-2 text-sm hover:bg-gray-700/50 flex justify-between items-center cursor-pointer ${statusFilter === status ? 'text-white bg-gray-700/50' : 'text-gray-300'}`}
                              >
                                {status.charAt(0) + status.slice(1).toLowerCase()}
                                {statusFilter === status && <Check size={14} className="text-orange-500" />}
@@ -269,7 +269,7 @@ export default function DealsPage() {
               
               <button 
                 onClick={() => setViewingDeal(null)}
-                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all backdrop-blur z-10"
+                className="absolute top-4 right-4 bg-black/50 hover:bg-black/70 text-white p-2 rounded-full transition-all backdrop-blur z-10 cursor-pointer"
               >
                 <X size={20} />
               </button>

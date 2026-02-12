@@ -4,7 +4,16 @@ import { Modal, ModalFooter } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Formik, Form } from "formik";
 import * as Yup from "yup";
-import { DollarSign, AlertTriangle, Scale, Beaker } from "lucide-react";
+import {
+  DollarSign,
+  AlertTriangle,
+  Scale,
+  Beaker,
+  Weight,
+  Droplets,
+  FlaskConical,
+  Hash,
+} from "lucide-react";
 import {
   createIngredientAction,
   updateIngredientAction,
@@ -23,11 +32,11 @@ const IngredientSchema = Yup.object().shape({
 });
 
 const UNIT_OPTIONS = [
-  { value: "g", label: "Grams", icon: "⚖️" },
-  { value: "kg", label: "Kilograms", icon: "📦" },
-  { value: "ml", label: "Milliliters", icon: "💧" },
-  { value: "l", label: "Liters", icon: "🧪" },
-  { value: "pcs", label: "Pieces", icon: "🔢" },
+  { value: "g", label: "Grams", icon: <Scale size={20} /> },
+  { value: "kg", label: "Kilograms", icon: <Weight size={20} /> },
+  { value: "ml", label: "Milliliters", icon: <Droplets size={20} /> },
+  { value: "l", label: "Liters", icon: <FlaskConical size={20} /> },
+  { value: "pcs", label: "Pieces", icon: <Hash size={20} /> },
 ];
 
 export default function AddIngredientModal({
@@ -40,9 +49,9 @@ export default function AddIngredientModal({
   const initialValues = {
     name: ingredientToEdit?.name || "",
     unit: ingredientToEdit?.unit || "g",
-    stock: ingredientToEdit?.stock || 0,
-    costPerUnit: ingredientToEdit?.costPerUnit || 0,
-    lowStockThreshold: ingredientToEdit?.lowStockThreshold || 10,
+    stock: ingredientToEdit?.stock ?? "",
+    costPerUnit: ingredientToEdit?.costPerUnit ?? "",
+    lowStockThreshold: ingredientToEdit?.lowStockThreshold ?? 10,
   };
 
   const handleSubmit = async (values, { setSubmitting, resetForm }) => {
@@ -105,7 +114,7 @@ export default function AddIngredientModal({
                         target: { name: "unit", value: option.value },
                       })
                     }
-                    className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-1 ${
+                    className={`p-3 rounded-xl border-2 transition-all duration-200 flex flex-col items-center gap-1 cursor-pointer ${
                       values.unit === option.value
                         ? "bg-orange-500/20 border-orange-500 text-orange-400"
                         : "bg-gray-800/50 border-gray-700/50 text-gray-400 hover:border-gray-600"
@@ -131,7 +140,7 @@ export default function AddIngredientModal({
                     name="stock"
                     type="number"
                     min="0"
-                    className="h-10 text-xl font-bold bg-transparent border-0 p-0 focus:ring-0"
+                    className="h-10 text-xl font-bold bg-gray-900/50 border border-gray-700 rounded-lg px-3 focus:ring-1 focus:ring-orange-500/50 w-full"
                   />
                   <span className="text-gray-500 text-sm">{values.unit}</span>
                 </div>

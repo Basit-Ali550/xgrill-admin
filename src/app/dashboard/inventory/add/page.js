@@ -15,7 +15,9 @@ import {
   SERVICE_SUPPLY_CATEGORIES,
   SERVICE_SUPPLY_UNITS,
 } from "@/constants";
-import { Package, Sparkles } from "lucide-react";
+import { Package, Sparkles, Image as ImageIcon } from "lucide-react";
+import ImageUploader from "@/components/ui/ImageUploader";
+import { IMAGE_UPLOAD_FOLDERS } from "@/constants";
 
 // Yup validation schema
 const inventoryValidationSchema = Yup.object({
@@ -65,7 +67,9 @@ const initialValues = {
   stock: "",
   minStockAlert: "",
   expiryDate: "",
+  expiryDate: "",
   status: "Active",
+  image: "",
 };
 
 export default function AddInventoryPage() {
@@ -86,6 +90,7 @@ export default function AddInventoryPage() {
           body: JSON.stringify((() => {
             const payload = {
             name: values.itemName,
+            image: values.image, // Add image
             category: values.category,
             brand: values.brand,
             unitType: values.unitType,
@@ -135,6 +140,25 @@ export default function AddInventoryPage() {
         >
           {({ isSubmitting, status, values, setFieldValue }) => (
             <Form className="space-y-4">
+              {/* Image Upload */}
+              <div className="mb-6">
+                <label className="block text-sm font-medium text-gray-400 mb-3">Item Image</label>
+                <div className="h-48 rounded-xl overflow-hidden border border-gray-700 bg-gray-900 relative group">
+                  <ImageUploader
+                    value={values.image}
+                    onChange={(url) => setFieldValue("image", url)}
+                    folder={IMAGE_UPLOAD_FOLDERS.INVENTORY || IMAGE_UPLOAD_FOLDERS.PRODUCTS}
+                    className="h-full w-full object-cover"
+                  />
+                   {!values.image && (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center text-gray-500 pointer-events-none bg-gray-900/50 hover:bg-gray-900/40 transition-colors">
+                      <ImageIcon size={48} className="mb-2 opacity-50" />
+                      <span className="text-sm font-medium">Click to Upload Image</span>
+                    </div>
+                  )}
+                </div>
+              </div>
+
               {/* Item Type Toggle */}
               <div className="mb-6">
                 <label className="block text-sm font-medium text-gray-400 mb-3">Item Type</label>

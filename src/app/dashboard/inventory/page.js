@@ -286,7 +286,7 @@ export default function InventoryPage() {
           <div className="flex gap-1 bg-gray-800/50 p-1 rounded-lg mx-4">
             <button
               onClick={() => setFilterType('all')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
                 filterType === 'all'
                   ? 'bg-orange-500 text-white'
                   : 'text-gray-400 hover:text-white'
@@ -296,7 +296,7 @@ export default function InventoryPage() {
             </button>
             <button
               onClick={() => setFilterType('sale')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 cursor-pointer ${
                 filterType === 'sale'
                   ? 'bg-green-500 text-white'
                   : 'text-gray-400 hover:text-white'
@@ -306,7 +306,7 @@ export default function InventoryPage() {
             </button>
             <button
               onClick={() => setFilterType('supply')}
-              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 cursor-pointer ${
                 filterType === 'supply'
                   ? 'bg-purple-500 text-white'
                   : 'text-gray-400 hover:text-white'
