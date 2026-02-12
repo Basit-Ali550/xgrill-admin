@@ -221,3 +221,21 @@ export const SERVICE_SUPPLY_UNITS = [
 export const getStatusStyle = (status) => {
   return ORDER_STATUS_COLORS[status] || { bg: "rgba(107, 114, 128, 0.2)", color: "#9ca3af", label: status };
 };
+
+// Sort Options
+export const SORT_OPTIONS = [
+  { label: "Newest", value: "createdAt:desc" },
+  { label: "Oldest", value: "createdAt:asc" },
+  { label: "A-Z", value: "name:asc" },
+  { label: "Z-A", value: "name:desc" },
+];
+
+// Date Filter Options
+export const DATE_FILTER_OPTIONS = [
+  { label: "All Dates", value: "all" },
+  { label: "Today", value: "today" },
+  { label: "Yesterday", value: "yesterday" },
+  { label: "This Week", value: "week" },
+  { label: "This Month", value: "month" },
+  { label: "This Year", value: "year" },
+];

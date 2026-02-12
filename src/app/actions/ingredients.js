@@ -4,8 +4,8 @@ import { revalidatePath } from "next/cache";
 import axiosInstance, { apiCall } from "@/lib/api-client";
 
 // Fetch all ingredients
-export async function getIngredientsAction() {
-  return apiCall(() => axiosInstance.get("/api/v1/ingredients"));
+export async function getIngredientsAction(params = {}) {
+  return apiCall(() => axiosInstance.get("/api/v1/ingredients", { params }));
 }
 
 // Create ingredient

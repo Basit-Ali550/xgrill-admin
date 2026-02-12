@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,8 @@ import AddIngredientModal from "@/components/ingredients/AddIngredientModal";
 import AdjustStockModal from "@/components/ingredients/AdjustStockModal";
 import { DataTable } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Select } from "@/components/ui/select";
+import { RECIPE_UNITS, SORT_OPTIONS, DATE_FILTER_OPTIONS } from "@/constants";
 import toast from "react-hot-toast";
 
 export default function IngredientsPage() {
@@ -21,16 +23,60 @@ export default function IngredientsPage() {
   const [adjustingIngredient, setAdjustingIngredient] = useState(null);
   const [searchQuery, setSearchQuery] = useState("");
 
+  // Filters & Sorting
+  const [filterUnit, setFilterUnit] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all"); // all, today, yesterday, week, month, year
+  const [sortConfig, setSortConfig] = useState("createdAt:desc");
+
   // Delete State
   const [deleteId, setDeleteId] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
 
-  const fetchIngredients = async () => {
-    const res = await getIngredientsAction();
+  const fetchIngredients = useCallback(async () => {
+    const [sortField, sortOrder] = sortConfig.split(":");
+    
+    // Calculate Date Range based on filter
+    let startDate, endDate;
+    const now = new Date();
+    
+    if (dateFilter === 'today') {
+      startDate = now.toISOString().split('T')[0];
+      endDate = startDate;
+    } else if (dateFilter === 'yesterday') {
+      const yest = new Date(now);
+      yest.setDate(yest.getDate() - 1);
+      startDate = yest.toISOString().split('T')[0];
+      endDate = startDate;
+    } else if (dateFilter === 'week') {
+      const weekAgo = new Date(now);
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      startDate = weekAgo.toISOString().split('T')[0];
+      endDate = now.toISOString().split('T')[0];
+    } else if (dateFilter === 'month') {
+      const monthAgo = new Date(now);
+      monthAgo.setMonth(monthAgo.getMonth() - 1);
+      startDate = monthAgo.toISOString().split('T')[0];
+      endDate = now.toISOString().split('T')[0];
+    } else if (dateFilter === 'year') {
+      const yearAgo = new Date(now);
+      yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+      startDate = yearAgo.toISOString().split('T')[0];
+      endDate = now.toISOString().split('T')[0];
+    }
+
+    const params = {
+      unit: filterUnit === "all" ? undefined : filterUnit,
+      startDate,
+      endDate,
+      sort: sortField,
+      order: sortOrder,
+    };
+
+    const res = await getIngredientsAction(params);
     if (res?.success) {
       setIngredients(res.data);
     }
-  };
+  }, [filterUnit, dateFilter, sortConfig]);
 
   useEffect(() => {
     const loadData = async () => {
@@ -39,7 +85,7 @@ export default function IngredientsPage() {
       setLoading(false);
     };
     loadData();
-  }, []);
+  }, [fetchIngredients]);
 
   const handleDelete = (id) => {
     setDeleteId(id);
@@ -253,10 +299,57 @@ export default function IngredientsPage() {
         </div>
 
         <Card>
-          <CardHeader>
+          <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 space-y-0">
             <CardTitle className="flex items-center gap-2">
-              <span>🥦</span> Raw Ingredients Stock
+              Raw Ingredients Stock <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-700 hover:bg-orange-200">{ingredients.length}</Badge>
             </CardTitle>
+            
+            <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <div className="w-32">
+                <Select 
+                  value={filterUnit} 
+                  onChange={(e) => setFilterUnit(e.target.value)} 
+                  options={[
+                    { label: "All Units", value: "all" },
+                    ...RECIPE_UNITS.filter(u => u.value !== "").map(u => ({ label: u.label, value: u.value }))
+                  ]}
+                  placeholder="Unit"
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <div className="w-40">
+                <Select 
+                  value={dateFilter} 
+                  onChange={(e) => setDateFilter(e.target.value)} 
+                  options={DATE_FILTER_OPTIONS}
+                  placeholder="Date"
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <div className="w-40">
+                <Select 
+                  value={sortConfig} 
+                  onChange={(e) => setSortConfig(e.target.value)} 
+                  options={SORT_OPTIONS}
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterUnit("all");
+                  setDateFilter("all");
+                  setSortConfig("createdAt:desc");
+                }}
+                title="Reset"
+                className="h-9 w-9 p-0 border-gray-700 hover:bg-gray-800"
+              >
+                <RefreshCw size={14} />
+              </Button>
+            </div>
           </CardHeader>
           
           <CardContent className="p-0">
