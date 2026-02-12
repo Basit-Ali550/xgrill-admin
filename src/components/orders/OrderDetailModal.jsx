@@ -1,5 +1,5 @@
 "use client";
-import React, { useState, useEffect } from "react";
+import React, { useMemo } from "react";
 import { Modal } from "@/components/ui/modal";
 import { Button } from "@/components/ui/button";
 import { Select } from "@/components/ui/select";
@@ -16,7 +16,6 @@ import {
   Receipt,
   Users,
 } from "lucide-react";
-import { api } from "@/lib/api";
 
 const formatPrice = (amount) => {
   return new Intl.NumberFormat("en-PK", {
@@ -35,52 +34,19 @@ export default function OrderDetailModal({
   allOrders = [],
   isChef = false,
 }) {
-  const [sessionData, setSessionData] = useState(null);
-  const [sessionLoading, setSessionLoading] = useState(false);
-
-  // Fetch session details when order has a sessionId
-  useEffect(() => {
-    if (isOpen && order?.sessionId) {
-      fetchSessionDetails(order.sessionId);
-    } else {
-      setSessionData(null);
-    }
-  }, [isOpen, order?.sessionId]);
-
-  // Keep session order statuses in sync with allOrders (real-time updates)
-  useEffect(() => {
-    if (!sessionData?.orders || allOrders.length === 0) return;
-
-    const updatedOrders = sessionData.orders.map((sOrder) => {
-      const freshOrder = allOrders.find((o) => o.id === sOrder.id);
-      if (freshOrder && freshOrder.status !== sOrder.status) {
-        return { ...sOrder, status: freshOrder.status };
-      }
-      return sOrder;
-    });
-
-    // Only update if something actually changed
-    const hasChanges = updatedOrders.some(
-      (o, i) => o.status !== sessionData.orders[i].status,
+  // Group related orders by customerName (replaces session logic)
+  const customerOrders = useMemo(() => {
+    if (!order?.customerName) return null;
+    const related = allOrders.filter(
+      (o) => o.customerName === order.customerName,
     );
-    if (hasChanges) {
-      setSessionData((prev) => ({ ...prev, orders: updatedOrders }));
-    }
-  }, [allOrders]);
-
-  const fetchSessionDetails = async (sessionId) => {
-    setSessionLoading(true);
-    try {
-      const result = await api.get(`/api/v1/sessions/${sessionId}`);
-      if (result.success || result.data) {
-        setSessionData(result.data);
-      }
-    } catch (err) {
-      console.error("Failed to fetch session:", err);
-    } finally {
-      setSessionLoading(false);
-    }
-  };
+    if (related.length <= 1) return null; // No grouping needed for single orders
+    const grandTotal = related.reduce(
+      (sum, o) => sum + (o.totalAmount || 0),
+      0,
+    );
+    return { orders: related, grandTotal, count: related.length };
+  }, [order, allOrders]);
 
   if (!order) return null;
 
@@ -128,114 +94,93 @@ export default function OrderDetailModal({
           </p>
         </div>
 
-        {/* ─── Session Summary Panel ─────────────────────────── */}
-        {order.sessionId && (
+        {/* ─── Customer Orders Panel (replaces Session Panel) ─── */}
+        {customerOrders && (
           <div className="bg-purple-500/5 rounded-xl border border-purple-500/20 overflow-hidden">
-            {/* Session Header */}
+            {/* Header */}
             <div className="px-4 py-3 bg-purple-500/10 border-b border-purple-500/20 flex items-center gap-2">
               <Users className="w-4 h-4 text-purple-400" />
               <span className="text-sm font-bold text-purple-400">
-                🍽️ Dine-In Session
+                🍽️ Dine-In Customer
               </span>
             </div>
 
             <div className="p-4 space-y-3">
-              {sessionLoading ? (
-                <p className="text-gray-500 text-sm text-center py-2">
-                  Loading session...
+              {/* Grand Total */}
+              <div className="flex items-center justify-between bg-purple-500/10 rounded-lg px-4 py-3">
+                <div>
+                  <p className="text-[10px] text-purple-300/60 uppercase font-bold">
+                    Customer Grand Total
+                  </p>
+                  <p className="text-xs text-gray-400 mt-0.5">
+                    {customerOrders.count} order
+                    {customerOrders.count > 1 ? "s" : ""} from{" "}
+                    {order.customerName}
+                  </p>
+                </div>
+                <p className="text-2xl font-extrabold text-purple-400">
+                  {formatPrice(customerOrders.grandTotal)}
                 </p>
-              ) : sessionData ? (
-                <>
-                  {/* Session Grand Total */}
-                  <div className="flex items-center justify-between bg-purple-500/10 rounded-lg px-4 py-3">
-                    <div>
-                      <p className="text-[10px] text-purple-300/60 uppercase font-bold">
-                        Session Grand Total
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {sessionData.orderCount} order
-                        {sessionData.orderCount > 1 ? "s" : ""} in this session
-                      </p>
-                    </div>
-                    <p className="text-2xl font-extrabold text-purple-400">
-                      {formatPrice(sessionData.grandTotal || 0)}
-                    </p>
-                  </div>
+              </div>
 
-                  {/* All Session Orders List */}
-                  {sessionData.orders && sessionData.orders.length > 1 && (
-                    <div>
-                      <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">
-                        All Orders in Session
-                      </p>
-                      <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
-                        {sessionData.orders.map((sOrder) => {
-                          const sStatus =
-                            ORDER_STATUS_COLORS[sOrder.status] || {};
-                          const isCurrentOrder = sOrder.id === order.id;
+              {/* All Customer Orders List */}
+              <div>
+                <p className="text-[10px] text-gray-500 uppercase font-bold mb-2">
+                  All Orders from {order.customerName}
+                </p>
+                <div className="space-y-1.5 max-h-[140px] overflow-y-auto">
+                  {customerOrders.orders.map((cOrder) => {
+                    const cStatus = ORDER_STATUS_COLORS[cOrder.status] || {};
+                    const isCurrentOrder = cOrder.id === order.id;
 
-                          const handleClick = () => {
-                            if (isCurrentOrder) return;
-                            // Try to find full order from allOrders first
-                            const fullOrder = allOrders.find(
-                              (o) => o.id === sOrder.id,
-                            );
-                            if (fullOrder && onOrderSelect) {
-                              onOrderSelect(fullOrder);
-                            } else if (onOrderSelect) {
-                              // Fallback: use session order data (less complete but works)
-                              onOrderSelect(sOrder);
-                            }
-                          };
+                    const handleClick = () => {
+                      if (isCurrentOrder) return;
+                      if (onOrderSelect) {
+                        onOrderSelect(cOrder);
+                      }
+                    };
 
-                          return (
-                            <div
-                              key={sOrder.id}
-                              onClick={handleClick}
-                              className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
-                                isCurrentOrder
-                                  ? "bg-purple-500/15 border border-purple-500/30"
-                                  : "bg-gray-800/30 hover:bg-gray-700/40 cursor-pointer"
-                              }`}
-                            >
-                              <div className="flex items-center gap-2">
-                                <span
-                                  className={`text-xs font-bold ${isCurrentOrder ? "text-purple-400" : "text-gray-400"}`}
-                                >
-                                  #{sOrder.orderNumber}
-                                </span>
-                                {isCurrentOrder && (
-                                  <span className="text-[8px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold">
-                                    VIEWING
-                                  </span>
-                                )}
-                              </div>
-                              <div className="flex items-center gap-3">
-                                <span
-                                  className="text-[10px] font-bold px-1.5 py-0.5 rounded"
-                                  style={{
-                                    color: sStatus.color,
-                                    backgroundColor: sStatus.bg,
-                                  }}
-                                >
-                                  {sStatus.label || sOrder.status}
-                                </span>
-                                <span className="text-gray-300 font-medium text-xs">
-                                  {formatPrice(sOrder.totalAmount)}
-                                </span>
-                              </div>
-                            </div>
-                          );
-                        })}
+                    return (
+                      <div
+                        key={cOrder.id}
+                        onClick={handleClick}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-sm transition-colors ${
+                          isCurrentOrder
+                            ? "bg-purple-500/15 border border-purple-500/30"
+                            : "bg-gray-800/30 hover:bg-gray-700/40 cursor-pointer"
+                        }`}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span
+                            className={`text-xs font-bold ${isCurrentOrder ? "text-purple-400" : "text-gray-400"}`}
+                          >
+                            #{cOrder.orderNumber}
+                          </span>
+                          {isCurrentOrder && (
+                            <span className="text-[8px] bg-purple-500/20 text-purple-300 px-1.5 py-0.5 rounded font-bold">
+                              VIEWING
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <span
+                            className="text-[10px] font-bold px-1.5 py-0.5 rounded"
+                            style={{
+                              color: cStatus.color,
+                              backgroundColor: cStatus.bg,
+                            }}
+                          >
+                            {cStatus.label || cOrder.status}
+                          </span>
+                          <span className="text-gray-300 font-medium text-xs">
+                            {formatPrice(cOrder.totalAmount)}
+                          </span>
+                        </div>
                       </div>
-                    </div>
-                  )}
-                </>
-              ) : (
-                <p className="text-gray-500 text-xs text-center">
-                  Session info unavailable
-                </p>
-              )}
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </div>
         )}
