@@ -91,7 +91,7 @@ export default function OrdersPage() {
       });
     }
 
-    return result;
+    return result.filter(order => order.items && order.items.length > 0);
   }, [orders, searchQuery, startDate, endDate]);
 
   const handleStatusChange = async (orderId, newStatus) => {
