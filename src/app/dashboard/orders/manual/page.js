@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, useRef } from "react";
 import { getProductsAction } from "@/app/actions/products";
 import { getDealsAction } from "@/app/actions/deals";
 import { getUsersAction } from "@/app/actions/users";
@@ -32,6 +32,7 @@ import {
   ShoppingBag,
   NotebookPen,
   Eye,
+  User,
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
@@ -47,6 +48,7 @@ export default function ManualOrderPage() {
   // Cart State
   const [cart, setCart] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
+  const [customerName, setCustomerName] = useState(""); // Re-adding name state
   const [notes, setNotes] = useState("");
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [contactPhone, setContactPhone] = useState("");
@@ -69,22 +71,60 @@ export default function ManualOrderPage() {
   const [userSearch, setUserSearch] = useState("");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
+  const hasShownToast = useRef(false);
+  
+  // URL Params for pre-filling
+  const { search } = typeof window !== 'undefined' ? window.location : {};
 
   useEffect(() => {
     fetchData();
+    
+    // Parse query params if available
+    if (typeof window !== 'undefined') {
+        const params = new URLSearchParams(window.location.search);
+        const name = params.get('name');
+        const phone = params.get('phone');
+        const address = params.get('address');
+        const customerId = params.get('customerId');
+        
+        if (customerId || name) {
+            // Auto select manual user if guest info is present
+            if (customerId) {
+                // Ideally prompt search or set if we had user object, 
+                // but we can try fetching or just set basic info if we don't have full object
+                // For now, if passed info, populate fields
+                // Since we rely on selectedUser for the UI to toggle:
+                if (!hasShownToast.current) {
+                    toast.success("Customer details loaded from previous order");
+                    hasShownToast.current = true;
+                }
+            } 
+            
+            // Set fields
+            if (name) setCustomerName(name);
+            if (phone) setContactPhone(phone);
+            if (address) setDeliveryAddress(address);
+            
+            // Force manual mode UI
+             setSelectedUser({ 
+                id: customerId || 'manual', 
+                name: name || 'Guest', 
+                phone: phone || '', 
+                address: address || '' 
+             });
+        }
+    }
   }, []);
 
-  useEffect(() => {
-    if (currentUser && !selectedUser) {
-      setSelectedUser(currentUser);
-    }
-  }, [currentUser]);
+  // Default user selection removed
 
   useEffect(() => {
     if (selectedUser) {
+      setCustomerName(selectedUser.name || "");
       setContactPhone(selectedUser.phone || "");
       setDeliveryAddress(selectedUser.address || "");
     } else {
+      setCustomerName("");
       setContactPhone("");
       setDeliveryAddress("");
     }
@@ -220,7 +260,8 @@ export default function ManualOrderPage() {
           quantity: item.quantity,
           size: item.size, // Pass size to backend
         })),
-        customerId: selectedUser.id,
+        customerId: selectedUser?.id === 'manual' ? null : (selectedUser?.id || null), 
+        customerName: customerName,
         notes,
         phone: contactPhone,
         address: deliveryAddress,
@@ -706,13 +747,22 @@ export default function ManualOrderPage() {
                   size="sm"
                   className="absolute right-1.5 top-1.5 h-8 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600/50 rounded-lg text-xs"
                   onClick={() => {
-                    if (currentUser) {
-                      setSelectedUser(currentUser);
-                      toast.success("Walk-in customer set");
-                    }
+          
+                    setSelectedUser(null);
+                    setCustomerName("Guest"); 
+                    toast.success("Manual entry mode");
+                    // Force re-render of the "details" block by setting a dummy selectedUser? 
+                    // No, we need a flag for "isManualEntry". 
+                    // Let's use a trick: set selectedUser to null but we need to show the details block. 
+                    // Better approach: We need a state for 'showCustomerDetails'.
+                    // Or, we can just use the 'customerName' state as a trigger if we change the condition logic.
+                    // But simpler: just reuse the logic from before but simpler.
+                    // Let's assume we need to toggle 'isGuest' equivalent but without calling it isGuest to avoid confusion.
+                    // Let's use a special object for manual user to trigger the view.
+                    setSelectedUser({ id: 'manual', name: 'Guest', phone: '', address: '' });
                   }}
                 >
-                  <Store size={12} className="mr-1.5" /> Walk-in
+                  <Store size={12} className="mr-1.5" /> Manual
                 </Button>
 
                 {isUserDropdownOpen && userSearch && (
@@ -772,6 +822,17 @@ export default function ManualOrderPage() {
                 <div className="p-3 space-y-2.5">
                   <div className="relative">
                     <div className="absolute left-3 top-2.5 text-gray-500">
+                      <User size={14} />
+                    </div>
+                    <Input 
+                      value={customerName}
+                      onChange={(e) => setCustomerName(e.target.value)}
+                      placeholder="Customer Name..."
+                      className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600 font-bold text-gray-200"
+                    />
+                  </div>
+                  <div className="relative">
+                    <div className="absolute left-3 top-2.5 text-gray-500">
                       <Phone size={14} />
                     </div>
                     <Input 
@@ -792,17 +853,7 @@ export default function ManualOrderPage() {
                       className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
                     />
                   </div>
-                   <div className="relative">
-                    <div className="absolute left-3 top-2.5 text-gray-500">
-                      <NotebookPen size={14} />
-                    </div>
-                    <Input 
-                      value={notes}
-                      onChange={(e) => setNotes(e.target.value)}
-                      placeholder="Add order notes (optional)..."
-                      className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
-                    />
-                  </div>
+                  {/* Order Notes Removed */}
                 </div>
               </div>
             )}

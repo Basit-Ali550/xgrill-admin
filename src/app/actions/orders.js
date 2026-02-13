@@ -15,3 +15,11 @@ export async function placeOrderAction(orderData) {
   }
   return result;
 }
+
+export async function addItemAction(orderId, itemData) {
+  const result = await apiCall(() => axiosInstance.post(`/api/v1/orders/${orderId}/items`, itemData));
+  if (result.success) {
+    revalidatePath("/dashboard/orders");
+  }
+  return result;
+}
