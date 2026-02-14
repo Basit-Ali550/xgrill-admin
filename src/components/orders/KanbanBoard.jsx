@@ -10,7 +10,7 @@ import {
   useDraggable,
   useDroppable,
 } from "@dnd-kit/core";
-import { GripVertical } from "lucide-react";
+import { GripVertical, Search } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { cn } from "@/lib/utils";
 import { ORDER_STATUS_COLORS } from "@/constants";
@@ -275,6 +275,8 @@ export default function KanbanBoard({
   onStatusChange,
   highlightedOrderId,
   isChef = false,
+  searchQuery,
+  onSearchChange,
 }) {
   const [activeId, setActiveId] = useState(null);
   const [overColumn, setOverColumn] = useState(null);
@@ -327,6 +329,22 @@ export default function KanbanBoard({
     }
   };
 
+  // Kitchen Prep Summary (Aggregated Items)
+  const prepSummary = useMemo(() => {
+    const pendingOrders = orders.filter((o) => o.status === "PENDING");
+    const summary = {};
+
+    pendingOrders.forEach((order) => {
+      order.items?.forEach((item) => {
+        const name = item.product?.name || item.deal?.name || "Unknown Item";
+        const qty = item.quantity || 1;
+        summary[name] = (summary[name] || 0) + qty;
+      });
+    });
+
+    return Object.entries(summary).sort((a, b) => b[1] - a[1]); // Sort by count desc
+  }, [orders]);
+
   return (
     <DndContext
       sensors={sensors}
@@ -335,17 +353,68 @@ export default function KanbanBoard({
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex-1 flex overflow-x-auto bg-gray-950">
-        {KANBAN_STATUSES.map((status) => (
-          <KanbanColumn
-            key={status}
-            status={status}
-            orders={ordersByStatus[status] || []}
-            onCardClick={onOrderClick}
-            highlightedOrderId={highlightedOrderId}
-            isOver={overColumn === status}
-          />
-        ))}
+      <div className="flex flex-col h-full bg-gray-950">
+        {/* Kitchen Prep Summary Bar & Search */}
+        <div className="bg-gray-900 border-b border-gray-800 p-2 flex items-center gap-4 shadow-md z-10">
+          {/* Search Input */}
+          <div className="relative w-64 shrink-0">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
+            <input
+              type="text"
+              placeholder="Search by customer..."
+              value={searchQuery}
+              onChange={(e) => onSearchChange(e.target.value)}
+              className="w-full bg-gray-950 border border-gray-700 rounded-lg pl-9 pr-3 py-1.5 text-sm text-white focus:ring-2 focus:ring-orange-500/50 placeholder:text-gray-600"
+            />
+          </div>
+
+          {/* Divider */}
+          <div className="h-6 w-px bg-gray-800 shrink-0" />
+
+          {/* Prep Summary Items */}
+          <div className="flex-1 overflow-x-auto whitespace-nowrap flex items-center gap-4 custom-scrollbar">
+            {prepSummary.length > 0 ? (
+              <>
+                <div className="flex items-center gap-2 px-3 py-1 bg-orange-500/10 rounded-lg border border-orange-500/20 shrink-0">
+                  <span className="text-lg">🔥</span>
+                  <span className="text-xs font-bold text-orange-400 uppercase">
+                    To Prepare
+                  </span>
+                </div>
+                {prepSummary.map(([name, count]) => (
+                  <div
+                    key={name}
+                    className="flex items-center gap-2 px-3 py-1.5 bg-gray-800 rounded-full border border-gray-700 shrink-0"
+                  >
+                    <span className="text-sm font-bold text-white font-mono">
+                      {count}x
+                    </span>
+                    <span className="text-xs text-gray-300 font-medium">
+                      {name}
+                    </span>
+                  </div>
+                ))}
+              </>
+            ) : (
+              <span className="text-xs text-gray-600 italic">
+                No pending items to prepare
+              </span>
+            )}
+          </div>
+        </div>
+
+        <div className="flex-1 flex overflow-x-auto">
+          {KANBAN_STATUSES.map((status) => (
+            <KanbanColumn
+              key={status}
+              status={status}
+              orders={ordersByStatus[status] || []}
+              onCardClick={onOrderClick}
+              highlightedOrderId={highlightedOrderId}
+              isOver={overColumn === status}
+            />
+          ))}
+        </div>
       </div>
 
       <DragOverlay dropAnimation={{ duration: 200, easing: "ease" }}>

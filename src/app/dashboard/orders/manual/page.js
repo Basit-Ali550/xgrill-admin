@@ -522,8 +522,6 @@ export default function ManualOrderPage() {
               )}
             </div>
           )}
-
-          {/* Unit Dropdown (Show for INVENTORY) */}
           {filterType === 'INVENTORY' && units.length > 1 && (
              <div className="relative">
              <button

@@ -71,13 +71,29 @@ export default function ChefOrdersPage() {
   }, [socket]);
   const filteredOrders = useMemo(() => {
     let result = orders || [];
+    
+    // Filter by today's date
+    const today = new Date().toISOString().split('T')[0];
+    result = result.filter(order => {
+        const orderDate = new Date(order.createdAt).toISOString().split('T')[0];
+        return orderDate === today;
+    });
+
     if (searchQuery) {
       const q = searchQuery.toLowerCase();
-      result = result.filter(order => 
-        order.orderNumber?.toString().includes(q) ||
-        order.user?.name?.toLowerCase().includes(q) ||
-        order.user?.phone?.includes(q)
-      );
+      result = result.filter(order => {
+        // Search in Order Number
+        if (order.orderNumber?.toString().includes(q)) return true;
+
+        // Search in Customer Details (Prioritize manual/guest details)
+        const customerName = order.customerName || order.user?.name || '';
+        const customerPhone = order.customerPhone || order.phone || order.user?.phone || '';
+
+        return (
+            customerName.toLowerCase().includes(q) ||
+            customerPhone.includes(q)
+        );
+      });
     }
 
     return result;
@@ -86,7 +102,7 @@ export default function ChefOrdersPage() {
   return (
     <div className="flex flex-col h-[calc(100vh-140px)]">
       {/* Header Controls */}
-      <div className="shrink-0 flex justify-between items-center bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-6">
+      {/* <div className="shrink-0 flex justify-between items-center bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-6">
         <div>
           <h2 className="text-xl font-bold text-white flex items-center gap-2">
             Active Orders
@@ -96,17 +112,7 @@ export default function ChefOrdersPage() {
           </h2>
         </div>
         
-        <div className="w-72 relative">
-           <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 w-4 h-4" />
-            <input
-              type="text"
-              placeholder="Search by Order # or Name..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-gray-900 border border-gray-700 rounded-lg pl-9 pr-3 py-2 text-sm text-white focus:ring-2 focus:ring-orange-500/50 placeholder:text-gray-500"
-            />
-        </div>
-      </div>
+      </div> */}
       {loading ? (
         <div className="flex-1 flex items-center justify-center">
           <LoadingSpinner size="lg" />
@@ -119,6 +125,8 @@ export default function ChefOrdersPage() {
             onStatusChange={handleStatusChange}
             highlightedOrderId={highlightedOrderId}
             isChef={true}
+            searchQuery={searchQuery}
+            onSearchChange={setSearchQuery}
             />
         </div>
       )}
