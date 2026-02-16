@@ -264,6 +264,7 @@ export default function ManualOrderPage() {
         })),
         customerId: selectedUser?.id === 'manual' ? null : (selectedUser?.id || null), 
         customerName: customerName,
+        customerPhone: contactPhone,
         notes,
         phone: contactPhone,
         address: deliveryAddress,
