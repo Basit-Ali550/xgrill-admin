@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from "react";
 import { useSocket } from "@/context/SocketContext";
 import { api } from "@/lib/api";
 
-export function useOrders() {
+export function useOrders(filters = {}) {
   const [orders, setOrders] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -11,7 +11,12 @@ export function useOrders() {
 
   const fetchOrders = useCallback(async () => {
     try {
-      const result = await api.get("/api/v1/orders");
+      setLoading(true);
+      const params = new URLSearchParams();
+      if (filters.startDate) params.append("startDate", filters.startDate);
+      if (filters.endDate) params.append("endDate", filters.endDate);
+
+      const result = await api.get(`/api/v1/orders?${params.toString()}`);
       if (result.success) {
         setOrders(result.data);
       }
@@ -20,7 +25,7 @@ export function useOrders() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [filters.startDate, filters.endDate]);
 
   // Socket listeners
   useEffect(() => {

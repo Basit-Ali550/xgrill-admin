@@ -21,15 +21,15 @@ const { RangePicker } = DatePicker;
 
 
 export default function OrdersPage() {
-  const { orders, loading, updateOrderStatus } = useOrders();
+  const today = new Date().toISOString().split('T')[0];
+  const [startDate, setStartDate] = useState(today);
+  const [endDate, setEndDate] = useState(today);
+
+  const { orders, loading, updateOrderStatus } = useOrders({ startDate, endDate });
   const { socket } = useSocket();
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  
-  const today = new Date().toISOString().split('T')[0];
-  const [startDate, setStartDate] = useState(today);
-  const [endDate, setEndDate] = useState(today);
 
   // Socket notifications
   useEffect(() => {
@@ -80,19 +80,11 @@ export default function OrdersPage() {
         order.user?.phone?.includes(q)
       );
     }
-
-    if (startDate || endDate) {
-      result = result.filter(order => {
-        const orderDateStr = new Date(order.createdAt).toISOString().split('T')[0];
-        if (startDate && endDate) return orderDateStr >= startDate && orderDateStr <= endDate;
-        if (startDate) return orderDateStr >= startDate;
-        if (endDate) return orderDateStr <= endDate;
-        return true;
-      });
-    }
+    
+    // Date filtering is now handled by the backend via useOrders({ startDate, endDate })
 
     return result.filter(order => order.items && order.items.length > 0);
-  }, [orders, searchQuery, startDate, endDate]);
+  }, [orders, searchQuery]);
 
   const handleStatusChange = async (orderId, newStatus) => {
     try {

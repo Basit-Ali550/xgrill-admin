@@ -90,24 +90,16 @@ export default function ManualOrderPage() {
         const customerId = params.get('customerId');
         
         if (customerId || name) {
-            // Auto select manual user if guest info is present
             if (customerId) {
-                // Ideally prompt search or set if we had user object, 
-                // but we can try fetching or just set basic info if we don't have full object
-                // For now, if passed info, populate fields
-                // Since we rely on selectedUser for the UI to toggle:
                 if (!hasShownToast.current) {
                     toast.success("Customer details loaded from previous order");
                     hasShownToast.current = true;
                 }
             } 
-            
-            // Set fields
             if (name) setCustomerName(name);
             if (phone) setContactPhone(phone);
             if (address) setDeliveryAddress(address);
-            
-            // Force manual mode UI
+
              setSelectedUser({ 
                 id: customerId || 'manual', 
                 name: name || 'Guest', 
@@ -252,6 +244,13 @@ export default function ManualOrderPage() {
   const handlePlaceOrder = async () => {
     if (cart.length === 0) return toast.error("Cart is empty");
     if (!selectedUser) return toast.error("Please select a customer");
+    
+    if (!contactPhone.trim()) {
+      return toast.error("Phone number is required");
+    }
+    if (contactPhone.trim().length < 11) {
+      return toast.error("Phone number must be at least 11 digits");
+    }
 
     setIsPlacingOrder(true);
     try {
@@ -327,7 +326,6 @@ export default function ManualOrderPage() {
      if (filterType === 'PRODUCT') {
         allSizes = products.flatMap(p => p.variants?.map(v => v.size)).filter(Boolean);
      } else if (filterType === 'INVENTORY') {
-        // Inventory items might have sizes in variants too
         allSizes = inventoryProducts.flatMap(p => p.variants?.map(v => v.size)).filter(Boolean);
      }
      return ["ALL", ...new Set(allSizes)];
@@ -336,29 +334,24 @@ export default function ManualOrderPage() {
   // Filter Logic
   const filteredItems = useMemo(() => {
     let items = [];
-
-    // Collect Data based on Type
     if (filterType === "ALL" || filterType === "PRODUCT") {
-      // Process products (flatten variants)
       items = [
         ...items,
         ...products
           .filter((p) => p.isActive)
           .flatMap((p) => {
-             // If product has variants, create an item for each variant
              if (p.variants && p.variants.length > 0) {
                 return p.variants.map((v) => ({
                    ...p,
-                   id: `${p.id}-${v.size}`, // Unique ID for grid
+                   id: `${p.id}-${v.size}`,
                    productId: p.id,
                    name: `${p.name} (${v.size})`,
                    price: v.price,
                    size: v.size,
                    type: "product",
-                   image: p.image // Keep product image
+                   image: p.image
                 }));
              }
-             // Otherwise return base product
              return [{
                 ...p,
                 type: "product",
@@ -388,28 +381,20 @@ export default function ManualOrderPage() {
           .map((d) => ({ ...d, type: "deal", price: d.dealPrice })),
       ];
     }
-
-    // Apply Filters
     return items.filter((item) => {
-      // 1. Search
       const matchesSearch = item.name
         .toLowerCase()
         .includes(searchQuery.toLowerCase());
 
-      // 2. Category
       const matchesCategory =
         activeCategory === "ALL" || item.category === activeCategory;
 
-      // 3. Unit (Only for Inventory)
       let matchesUnit = true;
       if (filterType === 'INVENTORY' && activeUnit !== 'ALL') {
          matchesUnit = item.unitType === activeUnit;
       }
-
-      // 4. Size (For Product and Inventory)
       let matchesSize = true;
       if ((filterType === 'PRODUCT' || filterType === 'INVENTORY') && activeSize !== 'ALL') {
-         // Check if item has variants with this size
          matchesSize = item.variants?.some(v => v.size === activeSize);
       }
 
@@ -427,14 +412,9 @@ export default function ManualOrderPage() {
 
   return (
     <div className="flex h-[calc(100vh-5rem)] gap-6">
-      {/* Left Side: Menu Grid */}
       <div className="flex-1 flex flex-col gap-4 min-w-0">
-        {/* Header */}
-       
-
-        {/* Filters Row */}
         <div className="flex gap-3 items-center flex-wrap">
-          {/* Search */}
+
           <div className="relative flex-1 max-w-xs min-w-[200px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
             <Input
@@ -444,8 +424,6 @@ export default function ManualOrderPage() {
               onChange={(e) => setSearchQuery(e.target.value)}
             />
           </div>
-
-          {/* Type Dropdown */}
           <div className="relative">
             <button
                onClick={() => { setIsTypeOpen(!isTypeOpen); setIsCategoryOpen(false); setIsUnitOpen(false); setIsSizeOpen(false); }}
@@ -828,7 +806,7 @@ export default function ManualOrderPage() {
                     <Input 
                       value={contactPhone}
                       onChange={(e) => setContactPhone(e.target.value)}
-                      placeholder="Add phone number..."
+                      placeholder="Add phone number (min 11 digits)"
                       className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
                     />
                   </div>
@@ -911,7 +889,6 @@ export default function ManualOrderPage() {
           )}
         </ScrollArea>
 
-        {/* Cart Footer */}
         <div className="bg-gray-900 border-t border-gray-800 p-4 space-y-4 shadow-[0_-5px_20px_rgba(0,0,0,0.3)] z-10">
 
           <div className="space-y-3 pt-2">
