@@ -490,17 +490,10 @@ export default function OrderDetailModal({
                           if (order.address)
                             params.set("address", order.address);
 
-                          // If it's a guest order but has a user object (rare but possible), prioritize the active fields
-                          if (!order.user?.id) {
-                            // Ensure guest fields are sent if no ID
-                            if (order.customerName)
-                              params.set("name", order.customerName);
-                          }
-
                           window.location.href = `/dashboard/orders/manual?${params.toString()}`;
                         }}
                       >
-                        <Plus className="w-4 h-4 mr-2" /> Add Item (New Order)
+                        <Plus className="w-4 h-4 mr-2" /> Add More Items
                       </Button>
                     </div>
                   )}

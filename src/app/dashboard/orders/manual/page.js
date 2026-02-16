@@ -5,6 +5,7 @@ import { getProductsAction } from "@/app/actions/products";
 import { getDealsAction } from "@/app/actions/deals";
 import { getUsersAction } from "@/app/actions/users";
 import { placeOrderAction } from "@/app/actions/orders";
+import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
@@ -39,6 +40,7 @@ import { useAuth } from "@/context/AuthContext";
 
 export default function ManualOrderPage() {
   const { user: currentUser } = useAuth();
+  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [inventoryProducts, setInventoryProducts] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -258,7 +260,7 @@ export default function ManualOrderPage() {
           productId: item.productId,
           dealId: item.dealId,
           quantity: item.quantity,
-          size: item.size, // Pass size to backend
+          size: item.size,
         })),
         customerId: selectedUser?.id === 'manual' ? null : (selectedUser?.id || null), 
         customerName: customerName,
@@ -270,11 +272,11 @@ export default function ManualOrderPage() {
       const result = await placeOrderAction(orderData);
 
       if (result.success) {
-        toast.success("Order placed successfully!");
+        toast.success("Order placed! View it on the Order Board.");
         setCart([]);
         setNotes("");
-        setDeliveryAddress(selectedUser.address || "");
-        setContactPhone(selectedUser.phone || "");
+        // Redirect to orders page so they can see the new order grouped with existing ones
+        router.push('/dashboard/orders');
       } else {
         toast.error(result.error || "Failed to place order");
       }
@@ -745,19 +747,8 @@ export default function ManualOrderPage() {
                   size="sm"
                   className="absolute right-1.5 top-1.5 h-8 bg-gray-800 hover:bg-gray-700 text-gray-300 border border-gray-600/50 rounded-lg text-xs"
                   onClick={() => {
-          
-                    setSelectedUser(null);
-                    setCustomerName("Guest"); 
-                    toast.success("Manual entry mode");
-                    // Force re-render of the "details" block by setting a dummy selectedUser? 
-                    // No, we need a flag for "isManualEntry". 
-                    // Let's use a trick: set selectedUser to null but we need to show the details block. 
-                    // Better approach: We need a state for 'showCustomerDetails'.
-                    // Or, we can just use the 'customerName' state as a trigger if we change the condition logic.
-                    // But simpler: just reuse the logic from before but simpler.
-                    // Let's assume we need to toggle 'isGuest' equivalent but without calling it isGuest to avoid confusion.
-                    // Let's use a special object for manual user to trigger the view.
                     setSelectedUser({ id: 'manual', name: 'Guest', phone: '', address: '' });
+                    toast.success("Manual entry mode");
                   }}
                 >
                   <Store size={12} className="mr-1.5" /> Manual
@@ -851,7 +842,6 @@ export default function ManualOrderPage() {
                       className="pl-9 bg-gray-900 border-gray-800 h-9 text-sm focus:border-blue-500/50 focus:ring-1 focus:ring-blue-500/20 rounded-lg placeholder:text-gray-600"
                     />
                   </div>
-                  {/* Order Notes Removed */}
                 </div>
               </div>
             )}
@@ -937,7 +927,7 @@ export default function ManualOrderPage() {
           <Button
             size="lg"
             className={`w-full h-14 font-bold text-lg rounded-xl shadow-lg transition-all ${
-              cart.length === 0 || !selectedUser 
+              cart.length === 0 || !selectedUser
                 ? "bg-gray-800 text-gray-500 cursor-not-allowed" 
                 : "bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white shadow-orange-500/20 active:scale-[0.98]"
             }`}
