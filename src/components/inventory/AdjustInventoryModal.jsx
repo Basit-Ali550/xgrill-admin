@@ -24,7 +24,7 @@ export default function AdjustInventoryModal({
   onAdjust, // Passed from parent (hook function)
   onSuccess,
 }) {
-  const [adjustment, setAdjustment] = useState(0);
+  const [adjustment, setAdjustment] = useState("");
   const [newPrice, setNewPrice] = useState(0);
   const [reason, setReason] = useState("purchase");
   const [notes, setNotes] = useState("");
@@ -53,7 +53,8 @@ export default function AdjustInventoryModal({
   if (!item) return null;
 
   const handleSubmit = async () => {
-    if (adjustment === 0) {
+    const adjustmentVal = adjustment === "" ? 0 : adjustment;
+    if (adjustmentVal === 0) {
       toast.error("Adjustment cannot be zero");
       return;
     }
@@ -69,14 +70,14 @@ export default function AdjustInventoryModal({
       // Note: item.productId is what we use to adjust inventory
       const result = await onAdjust(
         item.productId,
-        adjustment,
+        adjustmentVal,
         finalReason,
         newPrice,
       );
 
       if (result.success) {
         toast.success(result.message || "Stock adjusted successfully");
-        setAdjustment(0);
+        setAdjustment("");
         setReason("purchase");
         setNotes("");
         onSuccess?.();
@@ -92,7 +93,8 @@ export default function AdjustInventoryModal({
   };
 
   const selectedReason = REASONS.find((r) => r.value === reason);
-  const newStock = (item.quantity || 0) + adjustment;
+  const adjustmentVal = adjustment === "" ? 0 : adjustment;
+  const newStock = (item.quantity || 0) + adjustmentVal;
 
   return (
     <Modal
@@ -120,7 +122,9 @@ export default function AdjustInventoryModal({
               type="button"
               variant="outline"
               className="h-12 w-12 p-0 border-red-500/50 hover:bg-red-500/20 hover:text-red-400"
-              onClick={() => setAdjustment((prev) => prev - 1)}
+              onClick={() =>
+                setAdjustment((prev) => (prev === "" ? -1 : prev - 1))
+              }
             >
               <Minus size={20} />
             </Button>
@@ -128,7 +132,11 @@ export default function AdjustInventoryModal({
             <input
               type="number"
               value={adjustment}
-              onChange={(e) => setAdjustment(parseFloat(e.target.value) || 0)}
+              onChange={(e) => {
+                const val = e.target.value;
+                setAdjustment(val === "" ? "" : parseFloat(val));
+              }}
+              placeholder="0"
               className="flex-1 h-12 bg-gray-800 border border-gray-700 rounded-lg text-center text-2xl text-white font-bold focus:outline-none focus:ring-2 focus:ring-orange-500"
             />
 
@@ -136,7 +144,9 @@ export default function AdjustInventoryModal({
               type="button"
               variant="outline"
               className="h-12 w-12 p-0 border-green-500/50 hover:bg-green-500/20 hover:text-green-400"
-              onClick={() => setAdjustment((prev) => prev + 1)}
+              onClick={() =>
+                setAdjustment((prev) => (prev === "" ? 1 : prev + 1))
+              }
             >
               <Plus size={20} />
             </Button>

@@ -10,6 +10,15 @@ import Link from "next/link";
 import { ArrowUpDown, RefreshCw, Trash2, Edit, Search, Package, Sparkles } from "lucide-react";
 import AdjustInventoryModal from "@/components/inventory/AdjustInventoryModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
+import { Select } from "@/components/ui/select";
+import { 
+  INVENTORY_CATEGORIES, 
+  SERVICE_SUPPLY_CATEGORIES,
+  UNIT_TYPES, 
+  SERVICE_SUPPLY_UNITS,
+  SORT_OPTIONS, 
+  DATE_FILTER_OPTIONS 
+} from "@/constants";
 
 export default function InventoryPage() {
   const { inventory, loading, adjustInventory, deleteInventoryItem } = useInventory();
@@ -18,6 +27,12 @@ export default function InventoryPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("all"); // all | sale | supply
 
+  // New Filters & Sorting
+  const [filterUnit, setFilterUnit] = useState("all");
+  const [dateFilter, setDateFilter] = useState("all");
+  const [sortConfig, setSortConfig] = useState("createdAt:desc");
+  const [filterCategory, setFilterCategory] = useState("all");
+
   const handleDelete = async () => {
     if (deleteId) {
       await deleteInventoryItem(deleteId);
@@ -25,25 +40,106 @@ export default function InventoryPage() {
     }
   };
 
+  const combinedUnits = useMemo(() => {
+    const units = [...UNIT_TYPES, ...SERVICE_SUPPLY_UNITS]
+      .filter(u => u.value !== "")
+      .filter((u, index, self) => index === self.findIndex(t => t.value === u.value));
+    return [{ label: "All Units", value: "all" }, ...units];
+  }, []);
+
+  const combinedCategories = useMemo(() => {
+    const cats = [...INVENTORY_CATEGORIES, ...SERVICE_SUPPLY_CATEGORIES]
+      .filter(c => c.value !== "")
+      .filter((c, index, self) => index === self.findIndex(t => t.value === c.value));
+    return [{ label: "All Categories", value: "all" }, ...cats];
+  }, []);
+
   const filteredInventory = useMemo(() => {
-    let items = inventory;
+    let items = [...inventory];
     
-    // First, filter out inactive products
+    // 1. Filter out inactive products (optional, based on requirement)
     items = items.filter((item) => item.product?.isActive !== false);
     
+    // 2. Type Filter (Sale/Supply)
     if (filterType === 'sale') {
       items = items.filter((item) => !item.product?.isServiceSupply);
     } else if (filterType === 'supply') {
       items = items.filter((item) => item.product?.isServiceSupply);
     }
+
+    // 3. Category Filter
+    if (filterCategory !== 'all') {
+      items = items.filter((item) => item.product?.category === filterCategory);
+    }
+
+    // 4. Unit Filter
+    if (filterUnit !== 'all') {
+      items = items.filter((item) => item.product?.unitType === filterUnit);
+    }
     
+    // 5. Search Filter
     if (searchQuery) {
       items = items.filter((item) =>
         item.product?.name.toLowerCase().includes(searchQuery.toLowerCase())
       );
     }
+
+    // 6. Date Filter
+    if (dateFilter !== 'all') {
+      const now = new Date();
+      items = items.filter((item) => {
+        const itemDate = new Date(item.product?.createdAt || item.createdAt);
+        if (dateFilter === 'today') {
+           return itemDate.toDateString() === now.toDateString();
+        }
+        if (dateFilter === 'yesterday') {
+           const yest = new Date(now);
+           yest.setDate(yest.getDate() - 1);
+           return itemDate.toDateString() === yest.toDateString();
+        }
+        if (dateFilter === 'week') {
+           const weekAgo = new Date(now);
+           weekAgo.setDate(weekAgo.getDate() - 7);
+           return itemDate >= weekAgo;
+        }
+        if (dateFilter === 'month') {
+           const monthAgo = new Date(now);
+           monthAgo.setMonth(monthAgo.getMonth() - 1);
+           return itemDate >= monthAgo;
+        }
+        if (dateFilter === 'year') {
+           const yearAgo = new Date(now);
+           yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+           return itemDate >= yearAgo;
+        }
+        return true;
+      });
+    }
+
+    // 7. Sort
+    const [field, order] = sortConfig.split(":");
+    items.sort((a, b) => {
+      let valA, valB;
+      if (field === 'name') {
+        valA = a.product?.name || "";
+        valB = b.product?.name || "";
+      } else if (field === 'stock' || field === 'quantity') {
+        valA = a.quantity || 0;
+        valB = b.quantity || 0;
+      } else if (field === 'price') {
+        valA = a.product?.basePrice || 0;
+        valB = b.product?.basePrice || 0;
+      } else {
+        valA = new Date(a.product?.createdAt || a.createdAt);
+        valB = new Date(b.product?.createdAt || b.createdAt);
+      }
+
+      const comparison = valA > valB ? 1 : valA < valB ? -1 : 0;
+      return order === 'asc' ? comparison : -comparison;
+    });
+
     return items;
-  }, [inventory, searchQuery, filterType]);
+  }, [inventory, searchQuery, filterType, filterUnit, dateFilter, sortConfig, filterCategory]);
 
   const columns = useMemo(() => [
     {
@@ -247,7 +343,6 @@ export default function InventoryPage() {
             >
               <RefreshCw size={16} />
             </Button>
-            {/* Edit functionality to be implemented fully if needed, for now placeholder like Ingredients */}
             <Button
               variant="ghost"
               size="sm"
@@ -271,24 +366,24 @@ export default function InventoryPage() {
 
   return (
     <>
-      <div className="flex justify-between items-center mb-6">
-         <div className="relative max-w-sm flex-1">
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+         <div className="relative max-w-sm w-full">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
               placeholder="Search inventory..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-9 bg-gray-900 border-gray-700"
+              className="pl-9 bg-gray-900 border-gray-700 h-10"
             />
           </div>
           
           {/* Filter Tabs */}
-          <div className="flex gap-1 bg-gray-800/50 p-1 rounded-lg mx-4">
+          <div className="flex gap-1 bg-gray-800/50 p-1 rounded-lg">
             <button
               onClick={() => setFilterType('all')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all cursor-pointer ${
                 filterType === 'all'
-                  ? 'bg-orange-500 text-white'
+                  ? 'bg-orange-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -298,17 +393,17 @@ export default function InventoryPage() {
               onClick={() => setFilterType('sale')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 cursor-pointer ${
                 filterType === 'sale'
-                  ? 'bg-green-500 text-white'
+                  ? 'bg-green-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
-              <Package size={14} /> Sale Items
+              <Package size={14} /> Sale
             </button>
             <button
               onClick={() => setFilterType('supply')}
               className={`px-4 py-2 rounded-md text-sm font-medium transition-all flex items-center gap-1 cursor-pointer ${
                 filterType === 'supply'
-                  ? 'bg-purple-500 text-white'
+                  ? 'bg-purple-500 text-white shadow-lg'
                   : 'text-gray-400 hover:text-white'
               }`}
             >
@@ -316,20 +411,78 @@ export default function InventoryPage() {
             </button>
           </div>
           
-          <div className="flex gap-4">
-             <Link href="/dashboard/inventory/add">
-               <Button className="bg-orange-600 hover:bg-orange-700 text-white">
-                 Add Inventory
-               </Button>
-             </Link>
-          </div>
+          <Link href="/dashboard/inventory/add">
+            <Button className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap">
+              Add Inventory
+            </Button>
+          </Link>
         </div>
 
       <Card>
-        <CardHeader>
+        <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 space-y-0 pb-6 border-b border-gray-800">
           <CardTitle className="flex items-center gap-2">
-            <span>📦</span> Stock Levels
+            <span>📦</span> Stock Levels 
+            <Badge variant="secondary" className="ml-2 bg-orange-500/10 text-orange-400 border-orange-500/20">
+              {filteredInventory.length}
+            </Badge>
           </CardTitle>
+
+          <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">
+              <div className="w-40">
+                <Select 
+                  value={filterCategory} 
+                  onChange={(e) => setFilterCategory(e.target.value)} 
+                  options={combinedCategories}
+                  placeholder="Category"
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <div className="w-32">
+                <Select 
+                  value={filterUnit} 
+                  onChange={(e) => setFilterUnit(e.target.value)} 
+                  options={combinedUnits}
+                  placeholder="Unit"
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <div className="w-40">
+                <Select 
+                  value={dateFilter} 
+                  onChange={(e) => setDateFilter(e.target.value)} 
+                  options={DATE_FILTER_OPTIONS}
+                  placeholder="Date"
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <div className="w-40">
+                <Select 
+                  value={sortConfig} 
+                  onChange={(e) => setSortConfig(e.target.value)} 
+                  options={SORT_OPTIONS}
+                  className="bg-gray-900 border-gray-700 text-white h-9"
+                />
+              </div>
+
+              <Button 
+                variant="outline" 
+                onClick={() => {
+                  setFilterType('all');
+                  setFilterCategory('all');
+                  setFilterUnit('all');
+                  setDateFilter('all');
+                  setSortConfig('createdAt:desc');
+                  setSearchQuery('');
+                }}
+                title="Reset All Filters"
+                className="h-9 w-9 p-0 border-gray-700 hover:bg-gray-800 hover:text-orange-400 transition-colors"
+              >
+                <RefreshCw size={14} />
+              </Button>
+            </div>
         </CardHeader>
         
         <CardContent className="p-0">
