@@ -3,7 +3,7 @@ import React from "react";
 import { FieldArray } from "formik";
 import { X } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { FormInput, FormSelect } from "@/components/ui/form-components";
+import { FormInput } from "@/components/ui/form-components";
 import { RECIPE_UNITS } from "@/constants";
 import { convertUnit, getCompatibleUnits } from "@/lib/pricing-utils";
 
@@ -15,7 +15,17 @@ export default function RecipeSection({
   availableIngredients,
   productionCost,
   handleChange,
+  setFieldValue,
 }) {
+  // When ingredient changes, auto-set unit to ingredient's base unit
+  const handleIngredientChange = (index, newIngredientId) => {
+    setFieldValue(`recipeData[${index}].ingredientId`, newIngredientId);
+    const ing = availableIngredients.find((i) => i.id === newIngredientId);
+    if (ing && ing.unit) {
+      setFieldValue(`recipeData[${index}].unit`, ing.unit);
+    }
+  };
+
   return (
     <section className="space-y-4">
       <div className="flex items-center justify-between px-2">
@@ -46,7 +56,7 @@ export default function RecipeSection({
                     (i) => i.id === item.ingredientId,
                   );
                   let qty = parseFloat(item.quantityRequired) || 0;
-                  // Unit conversion for display
+                  // Unit conversion for cost display
                   if (ing && ing.unit && item.unit !== ing.unit) {
                     qty = convertUnit(qty, item.unit, ing.unit);
                   }
@@ -62,14 +72,20 @@ export default function RecipeSection({
                       className="grid grid-cols-12 gap-2 items-center"
                     >
                       <div className="col-span-12 lg:col-span-5">
-                        <FormSelect
-                          name={`recipeData[${index}].ingredientId`}
-                          className="bg-gray-800 border-transparent text-xs h-8"
-                          options={availableIngredients.map((i) => ({
-                            label: `${i.name} (${i.unit})`,
-                            value: i.id,
-                          }))}
-                        />
+                        <select
+                          value={item.ingredientId || ""}
+                          onChange={(e) =>
+                            handleIngredientChange(index, e.target.value)
+                          }
+                          className="w-full bg-gray-800 border-transparent rounded text-xs h-8 px-2 text-gray-300"
+                        >
+                          <option value="">Select ingredient</option>
+                          {availableIngredients.map((i) => (
+                            <option key={i.id} value={i.id}>
+                              {i.name} ({i.unit})
+                            </option>
+                          ))}
+                        </select>
                       </div>
                       <div className="col-span-3">
                         <FormInput
@@ -81,9 +97,13 @@ export default function RecipeSection({
                       </div>
                       <div className="col-span-2">
                         <select
-                          name={`recipeData[${index}].unit`}
-                          onChange={handleChange}
                           value={item.unit}
+                          onChange={(e) =>
+                            setFieldValue(
+                              `recipeData[${index}].unit`,
+                              e.target.value,
+                            )
+                          }
                           className="w-full bg-gray-800 border-transparent rounded text-xs h-8 px-1 text-gray-300"
                         >
                           {unitOptions.map((u) => (

@@ -18,6 +18,10 @@ export default function VariantPricingSection({
   onRemoveVariant,
 }) {
   const sizes = SIZE_CONFIG[category] || [];
+  // Filter out sizes that have already been added
+  const availableSizes = sizes.filter(
+    (s) => !variants.some((v) => v.size === s),
+  );
 
   const handleProfitChange = (e) => {
     const p = parseFloat(e.target.value) || 0;
@@ -45,66 +49,72 @@ export default function VariantPricingSection({
         </div>
       </div>
 
-      {/* Variant Entry Row */}
-      <div className="grid grid-cols-12 gap-2 items-end">
-        {/* Size */}
-        <div className="col-span-4">
-          <label className="text-[10px] text-gray-500 mb-1 block">Size</label>
-          <select
-            className="w-full bg-gray-800 border-gray-700 rounded-lg text-sm px-3 py-2 text-white focus:ring-orange-500 focus:border-orange-500"
-            value={selectedSize}
-            onChange={(e) => setSelectedSize(e.target.value)}
-          >
-            <option value="">Select</option>
-            {sizes.map((s) => (
-              <option key={s} value={s}>
-                {s}
-              </option>
-            ))}
-          </select>
-        </div>
+      {/* Variant Entry Row — only show if there are sizes left to add */}
+      {availableSizes.length > 0 && (
+        <div className="grid grid-cols-12 gap-2 items-end">
+          {/* Size */}
+          <div className="col-span-4">
+            <label className="text-[10px] text-gray-500 mb-1 block">Size</label>
+            <select
+              className="w-full bg-gray-800 border-gray-700 rounded-lg text-sm px-3 py-2 text-white focus:ring-orange-500 focus:border-orange-500"
+              value={selectedSize}
+              onChange={(e) => setSelectedSize(e.target.value)}
+            >
+              <option value="">Select</option>
+              {availableSizes.map((s) => (
+                <option key={s} value={s}>
+                  {s}
+                </option>
+              ))}
+            </select>
+          </div>
 
-        {/* Profit */}
-        <div className="col-span-3">
-          <label className="text-[10px] text-blue-400 mb-1 block">Profit</label>
-          <input
-            type="number"
-            className="w-full bg-gray-800 border-blue-500/30 rounded-lg px-3 py-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Profit"
-            value={profit}
-            onChange={handleProfitChange}
-          />
-        </div>
-
-        {/* Price */}
-        <div className="col-span-3">
-          <label className="text-[10px] text-green-500 mb-1 block">Price</label>
-          <div className="relative">
-            <span className="absolute left-2 top-2 text-gray-500 text-xs">
-              Rs.
-            </span>
+          {/* Profit */}
+          <div className="col-span-3">
+            <label className="text-[10px] text-blue-400 mb-1 block">
+              Profit
+            </label>
             <input
               type="number"
-              className="w-full bg-gray-800 border-green-500/30 rounded-lg pl-6 pr-2 py-2 text-sm text-white focus:ring-green-500 focus:border-green-500 font-bold"
-              placeholder="0"
-              value={variantPrice}
-              onChange={handlePriceChange}
+              className="w-full bg-gray-800 border-blue-500/30 rounded-lg px-3 py-2 text-sm text-white focus:ring-blue-500 focus:border-blue-500"
+              placeholder="Profit"
+              value={profit}
+              onChange={handleProfitChange}
             />
           </div>
-        </div>
 
-        {/* Add Button */}
-        <div className="col-span-2">
-          <Button
-            type="button"
-            className="w-full bg-gray-700 hover:bg-gray-600 text-white"
-            onClick={onAddVariant}
-            disabled={!selectedSize || !variantPrice}
-          >
-            <Plus size={16} />
-          </Button>
+          {/* Price */}
+          <div className="col-span-3">
+            <label className="text-[10px] text-green-500 mb-1 block">
+              Price
+            </label>
+            <div className="relative">
+              <span className="absolute left-2 top-2 text-gray-500 text-xs">
+                Rs.
+              </span>
+              <input
+                type="number"
+                className="w-full bg-gray-800 border-green-500/30 rounded-lg pl-6 pr-2 py-2 text-sm text-white focus:ring-green-500 focus:border-green-500 font-bold"
+                placeholder="0"
+                value={variantPrice}
+                onChange={handlePriceChange}
+              />
+            </div>
+          </div>
+
+          {/* Add Button */}
+          <div className="col-span-2">
+            <Button
+              type="button"
+              className="w-full bg-gray-700 hover:bg-gray-600 text-white"
+              onClick={onAddVariant}
+              disabled={!selectedSize || !variantPrice}
+            >
+              <Plus size={16} />
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* Variants List */}
       <div className="space-y-2 mt-2">

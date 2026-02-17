@@ -213,6 +213,7 @@ export default function AddProductModal({ isOpen, onClose, onAdd, product }) {
                   availableIngredients={availableIngredients}
                   productionCost={productionCost}
                   handleChange={handleChange}
+                  setFieldValue={setFieldValue}
                 />
 
                 {/* 3. PRICING & PROFIT */}
