@@ -31,7 +31,6 @@ import {
   Phone,
   MapPin,
   ShoppingBag,
-  NotebookPen,
   Eye,
   User,
 } from "lucide-react";
@@ -62,7 +61,7 @@ export default function ManualOrderPage() {
   const [activeUnit, setActiveUnit] = useState("ALL");
   const [activeSize, setActiveSize] = useState('ALL'); // For Products/Inventory
   const [viewDeal, setViewDeal] = useState(null); // For Deal Modal
-  const [filterType, setFilterType] = useState("PRODUCT"); 
+  const [filterType, setFilterType] = useState("ALL"); 
   
   const [isCategoryOpen, setIsCategoryOpen] = useState(false);
   const [isTypeOpen, setIsTypeOpen] = useState(false);
@@ -291,7 +290,7 @@ export default function ManualOrderPage() {
   const typeOptions = [
     { key: "ALL", label: "All Types", icon: Layers },
     { key: "PRODUCT", label: "Menu Items", icon: Utensils },
-    { key: "INVENTORY", label: "Direct Sale", icon: Package },
+    { key: "INVENTORY", label: "Other Items", icon: Package },
     { key: "DEAL", label: "Deals", icon: Tag },
   ];
 
@@ -306,9 +305,6 @@ export default function ManualOrderPage() {
     } else if (filterType === "INVENTORY") {
        cats = inventoryProducts.map(p => p.category);
     } else {
-       // For ALL or DEAL, maybe show combined or none?
-       // User asked for specific categories per type.
-       // Combining for ALL:
        cats = [...products.map(p => p.category), ...inventoryProducts.map(p => p.category)];
     }
     return ["ALL", ...new Set(cats.filter(Boolean))];
@@ -365,11 +361,25 @@ export default function ManualOrderPage() {
     if (filterType === "ALL" || filterType === "INVENTORY") {
       items = [
         ...items,
-        ...inventoryProducts.map((p) => ({
-          ...p,
-          type: "inventory",
-          price: p.basePrice || p.price,
-        })),
+        ...inventoryProducts.flatMap((p) => {
+          if (p.variants && p.variants.length > 0) {
+            return p.variants.map((v) => ({
+              ...p,
+              id: `inv-${p.id}-${v.size}`,
+              productId: p.id,
+              name: `${p.name} (${v.size})`,
+              price: v.price,
+              size: v.size,
+              type: "inventory",
+              image: p.image,
+            }));
+          }
+          return [{
+            ...p,
+            type: "inventory",
+            price: p.basePrice || p.price,
+          }];
+        }),
       ];
     }
     
@@ -464,8 +474,6 @@ export default function ManualOrderPage() {
                </>
              )}
           </div>
-
-          {/* Category Dropdown (Show for PRODUCT/INVENTORY/ALL) */}
           {filterType !== 'DEAL' && categories.length > 1 && (
             <div className="relative">
               <button
@@ -636,24 +644,64 @@ export default function ManualOrderPage() {
                         <h3 className="font-semibold text-white line-clamp-2 leading-tight">
                            {item.name}
                         </h3>
-                        {item.category && (
-                          <span className="shrink-0 text-[10px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
-                            {item.category}
-                          </span>
-                        )}
+                        <div className="flex items-center gap-1.5 shrink-0">
+                          {item.type === "deal" && (
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setViewDeal(item); }}
+                              className="h-6 w-6 flex items-center justify-center rounded-md bg-blue-500/10 text-blue-400 hover:bg-blue-500/20 transition-colors cursor-pointer"
+                              title="View Details"
+                            >
+                              <Eye size={13} />
+                            </button>
+                          )}
+                          {item.category && (
+                            <span className="text-[10px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-2 py-0.5 rounded">
+                              {item.category}
+                            </span>
+                          )}
+                        </div>
                       </div>
-                      
-                      {/* Deal Contents Button */}
-                      {item.type === "deal" && item.products && (
-                         <div className="mb-2">
-                           <button 
-                             onClick={(e) => { e.stopPropagation(); setViewDeal(item); }}
-                             className="flex items-center gap-1 text-[10px] bg-gray-700/50 hover:bg-gray-700 text-blue-300 px-2 py-1 rounded border border-blue-500/20 transition-colors cursor-pointer"
-                           >
-                             <Eye size={12} />
-                             View Items
-                           </button>
-                         </div>
+
+                      {/* Item description (Deals, Products, Inventory) */}
+                      {item.description && (
+                        <p className="text-[11px] text-gray-400 line-clamp-2 mb-2 leading-relaxed">
+                          {item.description}
+                        </p>
+                      )}
+
+                      {/* Deal included items */}
+                      {item.type === "deal" && item.products && item.products.length > 0 && (
+                        <div className="mb-2 space-y-1">
+                          <p className="text-[10px] text-gray-500 uppercase tracking-wider font-medium">Includes:</p>
+                          <div className="space-y-1 max-h-[100px] overflow-y-auto custom-scrollbar">
+                            {item.products.map((prodId, idx) => {
+                              const prod = products.find(p => p.id === prodId) || inventoryProducts.find(p => p.id === prodId);
+                              if (!prod) return (
+                                <div key={idx} className="flex items-center gap-1.5 text-[11px] text-gray-500">
+                                  <span className="w-1 h-1 rounded-full bg-gray-600 shrink-0" />
+                                  <span>Unknown Item</span>
+                                </div>
+                              );
+                              const variantSizes = prod.variants?.map(v => v.size).join(', ');
+                              return (
+                                <div key={idx} className="flex items-center gap-1.5 text-[11px]">
+                                  <span className="w-1 h-1 rounded-full bg-orange-400 shrink-0" />
+                                  <span className="text-gray-200 truncate">{prod.name}</span>
+                                  {variantSizes && (
+                                    <span className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 shrink-0">
+                                      {variantSizes}
+                                    </span>
+                                  )}
+                                  {prod.category && (
+                                    <span className="text-[9px] text-gray-500 shrink-0">
+                                      • {prod.category}
+                                    </span>
+                                  )}
+                                </div>
+                              );
+                            })}
+                          </div>
+                        </div>
                       )}
 
                       <div className="flex items-center justify-between mt-auto pt-2">
@@ -667,6 +715,17 @@ export default function ManualOrderPage() {
                              </span>
                            )}
                         </div>
+                        {/* Show original price & savings for deals */}
+                        {item.type === "deal" && item.originalPrice && item.originalPrice > item.price && (
+                          <div className="flex items-center gap-1.5">
+                            <span className="text-[11px] text-gray-500 line-through">
+                              Rs.{parseFloat(item.originalPrice).toFixed(0)}
+                            </span>
+                            <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                              Save {((1 - item.price / item.originalPrice) * 100).toFixed(0)}%
+                            </span>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -953,27 +1012,70 @@ export default function ManualOrderPage() {
             </div>
             <div className="p-5">
               <h3 className="text-xl font-bold text-white mb-1">{viewDeal.name}</h3>
-              <p className="text-orange-400 font-bold text-lg mb-4">
-                <PriceDisplay price={viewDeal.price} />
-              </p>
+              {viewDeal.description && (
+                <p className="text-sm text-gray-400 mb-3 leading-relaxed">{viewDeal.description}</p>
+              )}
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-orange-400 font-bold text-lg">
+                  <PriceDisplay price={viewDeal.price} />
+                </span>
+                {viewDeal.originalPrice && viewDeal.originalPrice > viewDeal.price && (
+                  <>
+                    <span className="text-sm text-gray-500 line-through">
+                      Rs.{parseFloat(viewDeal.originalPrice).toFixed(0)}
+                    </span>
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
+                      Save {((1 - viewDeal.price / viewDeal.originalPrice) * 100).toFixed(0)}%
+                    </span>
+                  </>
+                )}
+              </div>
               
               <div className="space-y-3">
                 <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Includes</h4>
-                <div className="space-y-2">
+                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
                   {viewDeal.products?.map((id, idx) => {
                     const prod = products.find(p => p.id === id) || inventoryProducts.find(p => p.id === id);
                     return (
-                      <div key={idx} className="flex items-center gap-3 bg-gray-800/50 p-2 rounded-lg border border-gray-800">
-                        <div className="h-8 w-8 rounded bg-gray-800 flex items-center justify-center shrink-0">
-                          {prod?.image ? (
-                             <div className="relative h-full w-full rounded overflow-hidden">
-                               <Image src={prod.image} alt={prod.name} fill className="object-cover" />
-                             </div>
-                          ) : (
-                             <Utensils size={14} className="text-gray-500" />
-                          )}
+                      <div key={idx} className="bg-gray-800/50 rounded-lg border border-gray-800 overflow-hidden">
+                        <div className="flex items-start gap-3 p-3">
+                          <div className="h-10 w-10 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
+                            {prod?.image ? (
+                               <div className="relative h-full w-full rounded-lg overflow-hidden">
+                                 <Image src={prod.image} alt={prod.name} fill className="object-cover" />
+                               </div>
+                            ) : (
+                               <Utensils size={16} className="text-gray-500" />
+                            )}
+                          </div>
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-0.5">
+                              <span className="text-gray-200 text-sm font-medium">{prod?.name || "Unknown Item"}</span>
+                              {prod?.category && (
+                                <span className="text-[9px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
+                                  {prod.category}
+                                </span>
+                              )}
+                            </div>
+                            {prod?.description && (
+                              <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">{prod.description}</p>
+                            )}
+                            {prod?.variants && prod.variants.length > 0 && (
+                              <div className="flex flex-wrap gap-1 mt-1.5">
+                                {prod.variants.map((v, vi) => (
+                                  <span key={vi} className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
+                                    {v.size} — Rs.{parseFloat(v.price).toFixed(0)}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+                            {prod?.basePrice && (!prod.variants || prod.variants.length === 0) && (
+                              <p className="text-[11px] text-orange-400 font-medium mt-1">
+                                Rs.{parseFloat(prod.basePrice).toFixed(0)}
+                              </p>
+                            )}
+                          </div>
                         </div>
-                        <span className="text-gray-200 text-sm">{prod?.name || "Unknown Item"}</span>
                       </div>
                     );
                   })}
