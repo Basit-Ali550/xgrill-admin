@@ -16,6 +16,7 @@ import {
   MdClose,
   MdAddShoppingCart,
   MdPeople,
+  MdHistory,
 } from "react-icons/md";
 import { GiGrainBundle } from "react-icons/gi";
 import { FaFire } from "react-icons/fa";
@@ -35,7 +36,7 @@ const navItems = [
   { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
   { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
   { href: "/dashboard/staff", label: "Staff", Icon: MdPeople },
-  // { href: "/dashboard/history", label: "History & Analytics", Icon: MdHistory },
+  { href: "/dashboard/activity-log", label: "Activity Log", Icon: MdHistory, adminOnly: true },
 ];
 
 export default function DashboardLayout({ children }) {
@@ -159,7 +160,9 @@ export default function DashboardLayout({ children }) {
 
           {/* Navigation */}
           <nav className="flex-1 p-3 overflow-y-auto">
-            {navItems.map((item) => {
+            {navItems
+              .filter((item) => !item.adminOnly || user?.role === "ADMIN")
+              .map((item) => {
               const active = isActive(item.href);
               const Icon = item.Icon;
               return (
