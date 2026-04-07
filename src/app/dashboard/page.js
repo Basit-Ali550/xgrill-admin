@@ -5,6 +5,7 @@ import { useInventory } from "@/hooks/useInventory";
 import { useProducts } from "@/hooks/useProducts";
 import { useIngredients } from "@/hooks/useIngredients";
 import { useSocket } from "@/context/SocketContext";
+import { useAuth } from "@/context/AuthContext";
 import { StatCard } from "@/components/ui/StatCard";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -50,6 +51,8 @@ export default function DashboardPage() {
   const { ingredients } = useIngredients();
   const { products } = useProducts();
   const { socket } = useSocket();
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   
   // Date range filter - default to today
   const today = new Date().toISOString().split('T')[0];
@@ -74,12 +77,13 @@ export default function DashboardPage() {
   const [lastUpdated, setLastUpdated] = useState(null);
 
   const fetchStats = useCallback(async () => {
+      if (!isAdmin) return; // Only admin can access dashboard stats API
       const res = await getDashboardStats(startDate, endDate);
       if (res.success) {
           setDashboardStats(res.data);
           setLastUpdated(new Date());
       }
-  }, [startDate, endDate]);
+  }, [startDate, endDate, isAdmin]);
 
   // Initial fetch and Real-time listeners
   useEffect(() => {
@@ -110,30 +114,31 @@ export default function DashboardPage() {
   ];
 
   const stats = [
-    // Financials
+    // Financials (Admin-only)
     { 
       title: startDate === endDate && startDate === today ? "Today's Revenue" : "Revenue", 
       value: <PriceDisplay price={dashboardStats?.revenue} />, 
       icon: DollarSign, 
       color: "#10b981", 
-      bgColor: "rgba(16, 185, 129, 0.2)" 
+      bgColor: "rgba(16, 185, 129, 0.2)",
+      adminOnly: true,
     },
-    { title: "COGS (Product Cost)", value: <PriceDisplay price={dashboardStats?.cogs} />, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)" },
-    { title: "Total Profit", value: <PriceDisplay price={dashboardStats?.netProfit} />, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)" },
+    { title: "COGS (Product Cost)", value: <PriceDisplay price={dashboardStats?.cogs} />, icon: Factory, color: "#6366f1", bgColor: "rgba(99, 102, 241, 0.2)", adminOnly: true },
+    { title: "Total Profit", value: <PriceDisplay price={dashboardStats?.netProfit} />, icon: Wallet, color: "#06b6d4", bgColor: "rgba(6, 182, 212, 0.2)", adminOnly: true },
     
-    // Inventory & Stock
-    { title: "Investment Added", value: <PriceDisplay price={dashboardStats?.investmentAdded} />, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)" },
-    { title: "Current Stock Value", value: <PriceDisplay price={dashboardStats?.currentInvestment} />, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)" },
-    { title: "Loss (Waste)", value: <PriceDisplay price={Math.abs(dashboardStats?.totalLoss || 0)} />, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)" },
-    { title: "Discount Given", value: <PriceDisplay price={dashboardStats?.totalDiscountGiven} />, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)" },
+    // Inventory & Stock (Admin-only)
+    { title: "Investment Added", value: <PriceDisplay price={dashboardStats?.investmentAdded} />, icon: ArrowDownToLine, color: "#3b82f6", bgColor: "rgba(59, 130, 246, 0.2)", adminOnly: true },
+    { title: "Current Stock Value", value: <PriceDisplay price={dashboardStats?.currentInvestment} />, icon: Warehouse, color: "#ec4899", bgColor: "rgba(236, 72, 153, 0.2)", adminOnly: true },
+    { title: "Loss (Waste)", value: <PriceDisplay price={Math.abs(dashboardStats?.totalLoss || 0)} />, icon: TrendingDown, color: "#ef4444", bgColor: "rgba(239, 68, 68, 0.2)", adminOnly: true },
+    { title: "Discount Given", value: <PriceDisplay price={dashboardStats?.totalDiscountGiven} />, icon: Tag, color: "#f97316", bgColor: "rgba(249, 115, 22, 0.2)", adminOnly: true },
     
-    // Operations
+    // Operations (visible to all)
     { title: "Total Customers", value: (dashboardStats?.totalCustomers || 0).toLocaleString(), icon: Users, color: "#14b8a6", bgColor: "rgba(20, 184, 166, 0.2)" },
     { title: "Deals Sold", value: (dashboardStats?.dealsSold || 0).toLocaleString(), icon: Ticket, color: "#d946ef", bgColor: "rgba(217, 70, 239, 0.2)" },
     { title: "Total Orders", value: (dashboardStats?.totalOrders || 0).toLocaleString(), icon: ClipboardList, color: "#60a5fa", bgColor: "rgba(59, 130, 246, 0.2)" },
     { title: "Total Products", value: products?.length || 0, icon: Package, color: "#4ade80", bgColor: "rgba(34, 197, 94, 0.2)" },
     { title: "Low Stock Items", value: allLowStock.length, icon: AlertTriangle, color: "#f87171", bgColor: "rgba(239, 68, 68, 0.2)" },
-  ];
+  ].filter(stat => !stat.adminOnly || isAdmin);
 
   const recentOrders = orders?.slice(0, 5) || [];
 
@@ -151,14 +156,15 @@ export default function DashboardPage() {
               </span>
            </div>
            
-           {lastUpdated && (
+           {lastUpdated && isAdmin && (
              <p className="text-xs text-gray-500">
                Updated: {lastUpdated.toLocaleTimeString()}
              </p>
            )}
         </div>
 
-        {/* Right Side: Controls */}
+        {/* Right Side: Controls (Admin only) */}
+        {isAdmin && (
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <button 
             onClick={fetchStats}
@@ -205,6 +211,7 @@ export default function DashboardPage() {
             />
           </ConfigProvider>
         </div>
+        )}
       </div>
 
       {/* Stats Grid */}
@@ -278,10 +285,12 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      {/* Loss Report */}
+      {/* Loss Report (Admin only) */}
+      {isAdmin && (
       <div className="mt-6">
         <LossReportTable startDate={startDate} endDate={endDate} />
       </div>
+      )}
     </>
   );
 }

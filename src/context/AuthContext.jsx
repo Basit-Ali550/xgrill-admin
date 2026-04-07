@@ -29,7 +29,11 @@ export function AuthProvider({ children }) {
             // The backend returns { status: 'success', data: user }
             const userData = data.data || data;
 
-            if (userData.role !== "ADMIN" && userData.role !== "CHEF") {
+            if (
+              userData.role !== "ADMIN" &&
+              userData.role !== "CHEF" &&
+              userData.role !== "RECEPTIONIST"
+            ) {
               throw new Error("Insufficient privileges");
             }
 
@@ -67,7 +71,11 @@ export function AuthProvider({ children }) {
       throw new Error(data.message || "Login failed");
     }
 
-    if (data.data.user.role !== "ADMIN" && data.data.user.role !== "CHEF") {
+    if (
+      data.data.user.role !== "ADMIN" &&
+      data.data.user.role !== "CHEF" &&
+      data.data.user.role !== "RECEPTIONIST"
+    ) {
       throw new Error("Access denied. Insufficient privileges.");
     }
 
@@ -88,7 +96,10 @@ export function AuthProvider({ children }) {
   };
 
   const isAuthenticated =
-    !!token && (user?.role === "ADMIN" || user?.role === "CHEF");
+    !!token &&
+    (user?.role === "ADMIN" ||
+      user?.role === "CHEF" ||
+      user?.role === "RECEPTIONIST");
 
   return (
     <AuthContext.Provider

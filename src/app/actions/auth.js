@@ -21,7 +21,7 @@ export async function loginAction(prevState, formData) {
       return { error: data.error || data.message || "Login failed" };
     }
 
-    if (data.data.user.role !== "ADMIN" && data.data.user.role !== "CHEF") {
+    if (data.data.user.role !== "ADMIN" && data.data.user.role !== "CHEF" && data.data.user.role !== "RECEPTIONIST") {
       return { error: "Access denied. Insufficient privileges." };
     }
 

@@ -35,9 +35,12 @@ const navItems = [
   { href: "/dashboard/inventory", label: "Inventory", Icon: MdInventory2 },
   { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
   { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
-  { href: "/dashboard/staff", label: "Staff", Icon: MdPeople },
+  { href: "/dashboard/staff", label: "Staff", Icon: MdPeople, adminOnly: true },
   { href: "/dashboard/activity-log", label: "Activity Log", Icon: MdHistory, adminOnly: true },
 ];
+
+// Admin-only route prefixes — Receptionist cannot access these even via URL
+const ADMIN_ONLY_ROUTES = ["/dashboard/staff", "/dashboard/activity-log"];
 
 export default function DashboardLayout({ children }) {
   const { isAuthenticated, loading, user, logout } = useAuth();
@@ -69,7 +72,14 @@ export default function DashboardLayout({ children }) {
     if (!loading && isAuthenticated && user?.role === "CHEF") {
       router.push("/chef/orders");
     }
-  }, [isAuthenticated, loading, user, router]);
+    // Block non-admin from admin-only routes
+    if (!loading && isAuthenticated && user?.role !== "ADMIN") {
+      const isAdminRoute = ADMIN_ONLY_ROUTES.some((r) => pathname.startsWith(r));
+      if (isAdminRoute) {
+        router.push("/dashboard");
+      }
+    }
+  }, [isAuthenticated, loading, user, router, pathname]);
 
   // Get page title based on route (computed, not state)
   const pageTitle = (() => {
