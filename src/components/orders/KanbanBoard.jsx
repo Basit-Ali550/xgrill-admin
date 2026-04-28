@@ -26,6 +26,8 @@ const KANBAN_STATUSES = [
   "CANCELLED",
 ];
 
+const CHEF_STATUSES = ["PENDING", "PREPARING", "PREPARED"];
+
 const formatPrice = (amount) => {
   return new Intl.NumberFormat("en-PK", {
     style: "currency",
@@ -189,6 +191,7 @@ function KanbanColumn({
   onCardClick,
   highlightedOrderId,
   isOver,
+  isChef = false,
 }) {
   const statusConfig = ORDER_STATUS_COLORS[status] || {};
   const { setNodeRef } = useDroppable({ id: status });
@@ -197,8 +200,11 @@ function KanbanColumn({
     <div
       ref={setNodeRef}
       className={cn(
-        "flex flex-col w-[320px] min-w-[320px] max-w-[450px] flex-shrink-0 h-full transition-all duration-200",
+        "flex flex-col h-full transition-all duration-200",
         "border-l border-r border-gray-800",
+        isChef
+          ? "flex-1 min-w-0"
+          : "w-[320px] min-w-[320px] max-w-[450px] flex-shrink-0",
         isOver && "bg-gray-900/50",
       )}
       style={{
@@ -287,16 +293,18 @@ export default function KanbanBoard({
     }),
   );
 
+  const activeStatuses = isChef ? CHEF_STATUSES : KANBAN_STATUSES;
+
   // Group by status
   const ordersByStatus = useMemo(() => {
     const grouped = {};
-    KANBAN_STATUSES.forEach((status) => {
+    activeStatuses.forEach((status) => {
       grouped[status] = orders
         .filter((order) => order.status === status)
         .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     });
     return grouped;
-  }, [orders]);
+  }, [orders, activeStatuses]);
 
   const activeOrder = activeId ? orders.find((o) => o.id === activeId) : null;
 
@@ -313,20 +321,22 @@ export default function KanbanBoard({
     const newStatus = over.id;
     const order = orders.find((o) => o.id === orderId);
 
-    // Chef restrictions on Drag & Drop
-    if (isChef) {
-      if (newStatus === "CANCELLED") {
-        return;
-      }
+    if (
+      !order ||
+      order.status === newStatus ||
+      !activeStatuses.includes(newStatus)
+    )
+      return;
+    const currentIndex = KANBAN_STATUSES.indexOf(order.status);
+    const newIndex = KANBAN_STATUSES.indexOf(newStatus);
+    if (currentIndex >= 0 && newIndex >= 0 && newIndex < currentIndex) {
+      return; // Block going backward
+    }
+    if (isChef && newStatus === "CANCELLED") {
+      return;
     }
 
-    if (
-      order &&
-      order.status !== newStatus &&
-      KANBAN_STATUSES.includes(newStatus)
-    ) {
-      onStatusChange(orderId, newStatus);
-    }
+    onStatusChange(orderId, newStatus);
   };
 
   // Kitchen Prep Summary (Aggregated Items)
@@ -404,7 +414,7 @@ export default function KanbanBoard({
         </div>
 
         <div className="flex-1 flex overflow-x-auto">
-          {KANBAN_STATUSES.map((status) => (
+          {activeStatuses.map((status) => (
             <KanbanColumn
               key={status}
               status={status}
@@ -412,6 +422,7 @@ export default function KanbanBoard({
               onCardClick={onOrderClick}
               highlightedOrderId={highlightedOrderId}
               isOver={overColumn === status}
+              isChef={isChef}
             />
           ))}
         </div>

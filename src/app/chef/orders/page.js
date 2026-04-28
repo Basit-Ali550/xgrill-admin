@@ -1,9 +1,7 @@
 "use client";
 import { useState, useMemo, useEffect } from "react";
 import { 
-  ShoppingBag, 
-  Search,
-} from "lucide-react";
+  ShoppingBag} from "lucide-react";
 import { LoadingSpinner } from "@/components/ui/LoadingSpinner";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { useOrders } from "@/hooks/useOrders";
@@ -100,7 +98,7 @@ export default function ChefOrdersPage() {
   }, [orders, searchQuery]);
 
   return (
-    <div className="flex flex-col h-[calc(100vh-140px)]">
+    <div className="flex flex-col h-[calc(100vh-64px)]">
       {/* Header Controls */}
       {/* <div className="shrink-0 flex justify-between items-center bg-gray-800/50 p-4 rounded-xl border border-gray-700 mb-6">
         <div>

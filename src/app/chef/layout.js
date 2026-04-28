@@ -87,7 +87,7 @@ export default function ChefLayout({ children }) {
             </div>
           ))}
            </div>
-      <main className="flex-1 p-6 relative">
+      <main className="flex-1 relative overflow-hidden">
         {children}
       </main>
    

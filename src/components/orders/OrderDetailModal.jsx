@@ -400,13 +400,26 @@ export default function OrderDetailModal({
                   <Select
                     value={order.status}
                     onChange={handleStatusChange}
-                    options={ORDER_STATUSES.filter(
-                      (s) => !isChef || s !== "CANCELLED",
-                    ).map((s) => ({
-                      value: s,
-                      label:
-                        ORDER_STATUS_COLORS[s]?.label || s.replace(/_/g, " "),
-                    }))}
+                    options={(() => {
+                      if (isChef) {
+                        const chefStatuses = ["PENDING", "PREPARING", "PREPARED"];
+                        const currentIdx = chefStatuses.indexOf(order.status);
+                        return chefStatuses
+                          .filter((_, idx) => idx >= currentIdx)
+                          .map((s) => ({
+                            value: s,
+                            label: ORDER_STATUS_COLORS[s]?.label || s.replace(/_/g, " "),
+                          }));
+                      }
+                      // For all users: only show current status and forward statuses (no backward)
+                      const currentIdx = ORDER_STATUSES.indexOf(order.status);
+                      return ORDER_STATUSES
+                        .filter((_, idx) => idx >= currentIdx)
+                        .map((s) => ({
+                          value: s,
+                          label: ORDER_STATUS_COLORS[s]?.label || s.replace(/_/g, " "),
+                        }));
+                    })()}
                     className="w-full bg-gray-800 border-gray-700"
                   />
                 </div>
