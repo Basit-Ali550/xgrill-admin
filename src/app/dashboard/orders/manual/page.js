@@ -335,6 +335,7 @@ export default function ManualOrderPage() {
         ...items,
         ...products
           .filter((p) => p.isActive)
+          .filter((p) => p.availableStock === null || p.availableStock > 0)
           .flatMap((p) => {
              if (p.variants && p.variants.length > 0) {
                 return p.variants.map((v) => ({
@@ -357,32 +358,34 @@ export default function ManualOrderPage() {
           }),
       ];
     }
-    
+
     if (filterType === "ALL" || filterType === "INVENTORY") {
       items = [
         ...items,
-        ...inventoryProducts.flatMap((p) => {
-          if (p.variants && p.variants.length > 0) {
-            return p.variants.map((v) => ({
+        ...inventoryProducts
+          .filter((p) => p.availableStock === null || p.availableStock > 0)
+          .flatMap((p) => {
+            if (p.variants && p.variants.length > 0) {
+              return p.variants.map((v) => ({
+                ...p,
+                id: `inv-${p.id}-${v.size}`,
+                productId: p.id,
+                name: `${p.name} (${v.size})`,
+                price: v.price,
+                size: v.size,
+                type: "inventory",
+                image: p.image,
+              }));
+            }
+            return [{
               ...p,
-              id: `inv-${p.id}-${v.size}`,
-              productId: p.id,
-              name: `${p.name} (${v.size})`,
-              price: v.price,
-              size: v.size,
               type: "inventory",
-              image: p.image,
-            }));
-          }
-          return [{
-            ...p,
-            type: "inventory",
-            price: p.basePrice || p.price,
-          }];
-        }),
+              price: p.basePrice || p.price,
+            }];
+          }),
       ];
     }
-    
+
     if (filterType === "ALL" || filterType === "DEAL") {
       items = [
         ...items,
@@ -391,10 +394,16 @@ export default function ManualOrderPage() {
           .map((d) => ({ ...d, type: "deal", price: d.dealPrice })),
       ];
     }
+    const q = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
-      const matchesSearch = item.name
-        .toLowerCase()
-        .includes(searchQuery.toLowerCase());
+      const matchesSearch = !q || [
+        item.name,
+        item.description,
+        item.category,
+        item.brand,
+      ]
+        .filter(Boolean)
+        .some((field) => String(field).toLowerCase().includes(q));
 
       const matchesCategory =
         activeCategory === "ALL" || item.category === activeCategory;
@@ -428,11 +437,20 @@ export default function ManualOrderPage() {
           <div className="relative flex-1 max-w-xs min-w-[200px]">
             <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" size={18} />
             <Input
-              placeholder="Search..."
-              className="pl-11 h-11 bg-gray-800/50 border-gray-700/50 rounded-xl text-white"
+              placeholder="Search by name, category, brand..."
+              className="pl-11 pr-9 h-11 bg-gray-800/50 border-gray-700/50 rounded-xl text-white"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-500 hover:text-white p-1 rounded-md hover:bg-gray-700/50 transition-colors"
+                title="Clear search"
+              >
+                <X size={14} />
+              </button>
+            )}
           </div>
           <div className="relative">
             <button
@@ -598,7 +616,8 @@ export default function ManualOrderPage() {
           ) : filteredItems.length === 0 ? (
             <div className="flex flex-col items-center justify-center h-60 text-gray-500">
               <Utensils size={48} className="mb-3 opacity-30" />
-              <p>No items found</p>
+              <p>{searchQuery ? `No items match "${searchQuery}"` : "No items available"}</p>
+              <p className="text-xs mt-1 text-gray-600">Out-of-stock items are hidden automatically</p>
             </div>
           ) : (
             <div className="grid grid-cols-3 gap-5">
@@ -633,6 +652,20 @@ export default function ManualOrderPage() {
                         <Badge className={`absolute top-3 right-3 ${badge.color} border-0 shadow-lg text-[10px]`}>
                           {badge.label}
                         </Badge>
+                      )}
+                      {item.type !== "deal" && typeof item.availableStock === "number" && (
+                        <div
+                          className={`absolute top-3 left-3 px-2 py-1 rounded-md backdrop-blur text-[10px] font-bold uppercase tracking-wide shadow-lg border ${
+                            item.availableStock <= 5
+                              ? "bg-red-500/80 text-white border-red-300/30"
+                              : item.availableStock <= 15
+                                ? "bg-amber-500/80 text-white border-amber-300/30"
+                                : "bg-emerald-500/80 text-white border-emerald-300/30"
+                          }`}
+                          title={`Available: ${item.availableStock}`}
+                        >
+                          {item.availableStock} in stock
+                        </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                       <button className="absolute bottom-3 right-3 h-12 w-12 rounded-full bg-orange-500 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all transform translate-y-2 group-hover:translate-y-0 shadow-lg">
