@@ -73,6 +73,7 @@ export default function ManualOrderPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const hasShownToast = useRef(false);
   const userSearchRef = useRef(null);
+  const userPickerRef = useRef(null);
   
   // URL Params for pre-filling
   const { search } = typeof window !== 'undefined' ? window.location : {};
@@ -137,6 +138,18 @@ export default function ManualOrderPage() {
       fetchUsers("");
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUserDropdownOpen]);
+
+  // Close customer dropdown on outside click (ref-based — works across stacking contexts)
+  useEffect(() => {
+    if (!isUserDropdownOpen) return;
+    const handler = (e) => {
+      if (userPickerRef.current && !userPickerRef.current.contains(e.target)) {
+        setIsUserDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
   }, [isUserDropdownOpen]);
 
   const fetchData = async () => {
@@ -870,7 +883,7 @@ export default function ManualOrderPage() {
           {/* Customer Selection & Details */}
           <div className="space-y-3">
             {!selectedUser ? (
-              <div className="relative group">
+              <div ref={userPickerRef} className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-blue-400 transition-colors" size={16} />
                 <Input
                   ref={userSearchRef}
@@ -1152,10 +1165,6 @@ export default function ManualOrderPage() {
         </div>
       </Card>
 
-      {/* Click outside listener for user dropdown */}
-      {isUserDropdownOpen && (
-        <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
-      )}
 
       {/* Order Placed → Receipt Modal */}
       <OrderReceipt
