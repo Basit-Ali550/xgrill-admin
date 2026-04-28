@@ -31,8 +31,8 @@ const navItems = [
   { href: "/dashboard", label: "Dashboard", Icon: MdDashboard },
   { href: "/dashboard/orders", label: "Orders", Icon: MdReceipt },
   { href: "/dashboard/orders/manual", label: "POS", Icon: MdAddShoppingCart },
-  { href: "/dashboard/ingredients", label: "Ingredients", Icon: GiGrainBundle },
-  { href: "/dashboard/inventory", label: "Inventory", Icon: MdInventory2 },
+  { href: "/dashboard/ingredients", label: "Raw Materials", Icon: GiGrainBundle },
+  { href: "/dashboard/inventory", label: "Product Stock", Icon: MdInventory2 },
   { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
   { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
   { href: "/dashboard/staff", label: "Staff", Icon: MdPeople, adminOnly: true },
@@ -40,7 +40,12 @@ const navItems = [
 ];
 
 // Admin-only route prefixes — Receptionist cannot access these even via URL
-const ADMIN_ONLY_ROUTES = ["/dashboard/staff", "/dashboard/activity-log"];
+const ADMIN_ONLY_ROUTES = [
+  "/dashboard/staff",
+  "/dashboard/activity-log",
+  "/dashboard/inventory/add",
+  "/dashboard/inventory/edit",
+];
 
 export default function DashboardLayout({ children }) {
   const { isAuthenticated, loading, user, logout } = useAuth();
@@ -145,26 +150,47 @@ export default function DashboardLayout({ children }) {
           `}
           style={{ width: sidebarWidth, minWidth: sidebarWidth }}
         >
-          {/* Logo */}
-          <div className="p-4 border-b border-gray-700/50 flex items-center justify-between">
-            <Link href="/dashboard" className="flex items-center gap-3 no-underline">
-              <div className="w-10 h-10 bg-linear-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
-                <FaFire className="text-white text-xl" />
-              </div>
-              {showLabels && (
-                <div>
-                  <h1 className="text-lg font-bold text-white m-0">Grill-X</h1>
-                  <div className="flex items-center gap-2">
-                    <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
-                    <span className="text-xs text-gray-400">{isConnected ? "Live" : "Offline"}</span>
-                  </div>
+          {/* Logo + Collapse Toggle (top) */}
+          <div className="border-b border-gray-700/50">
+            <div className={`flex items-center gap-2 p-3 ${showLabels ? "justify-between" : "justify-center"}`}>
+              <Link href="/dashboard" className="flex items-center gap-3 no-underline min-w-0">
+                <div className="w-10 h-10 bg-linear-to-br from-orange-500 to-red-600 rounded-xl flex items-center justify-center shadow-lg shadow-orange-500/30 shrink-0">
+                  <FaFire className="text-white text-xl" />
                 </div>
-              )}
-            </Link>
-            {isMobile && (
-              <button onClick={closeSidebar} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors">
-                <MdClose size={24} />
-              </button>
+                {showLabels && (
+                  <div className="min-w-0">
+                    <h1 className="text-lg font-bold text-white m-0 truncate">Grill-X</h1>
+                    <div className="flex items-center gap-2">
+                      <span className={`w-2 h-2 rounded-full ${isConnected ? "bg-green-500 animate-pulse" : "bg-red-500"}`} />
+                      <span className="text-xs text-gray-400">{isConnected ? "Live" : "Offline"}</span>
+                    </div>
+                  </div>
+                )}
+              </Link>
+              {isMobile ? (
+                <button onClick={closeSidebar} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
+                  <MdClose size={20} />
+                </button>
+              ) : showLabels ? (
+                <button
+                  onClick={() => setIsCollapsed(true)}
+                  className="p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-gray-800 transition-all shrink-0"
+                  title="Collapse sidebar"
+                >
+                  <MdChevronLeft size={20} />
+                </button>
+              ) : null}
+            </div>
+            {!isMobile && !showLabels && (
+              <div className="px-2 pb-2">
+                <button
+                  onClick={() => setIsCollapsed(false)}
+                  className="w-full p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-gray-800 transition-all flex items-center justify-center"
+                  title="Expand sidebar"
+                >
+                  <MdChevronRight size={20} />
+                </button>
+              </div>
             )}
           </div>
 
@@ -193,18 +219,6 @@ export default function DashboardLayout({ children }) {
               );
             })}
           </nav>
-
-          {/* Collapse Button (Desktop) */}
-          {!isMobile && (
-            <div className="p-3 border-t border-gray-700/50">
-              <button
-                onClick={() => setIsCollapsed(!isCollapsed)}
-                className="w-full flex items-center justify-center gap-2 px-3 py-1.5 rounded-md text-gray-400 hover:text-white hover:bg-gray-800 transition-all"
-              >
-                {isCollapsed ? <MdChevronRight size={22} /> : <><MdChevronLeft size={22} /><span className="text-sm">Collapse</span></>}
-              </button>
-            </div>
-          )}
 
           {/* Footer */}
           {showLabels && (

@@ -11,16 +11,19 @@ import { ArrowUpDown, RefreshCw, Trash2, Edit, Search, Package, Sparkles } from 
 import AdjustInventoryModal from "@/components/inventory/AdjustInventoryModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/select";
-import { 
-  INVENTORY_CATEGORIES, 
+import { useAuth } from "@/context/AuthContext";
+import {
+  INVENTORY_CATEGORIES,
   SERVICE_SUPPLY_CATEGORIES,
-  UNIT_TYPES, 
+  UNIT_TYPES,
   SERVICE_SUPPLY_UNITS,
-  SORT_OPTIONS, 
-  DATE_FILTER_OPTIONS 
+  SORT_OPTIONS,
+  DATE_FILTER_OPTIONS
 } from "@/constants";
 
 export default function InventoryPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { inventory, loading, adjustInventory, deleteInventoryItem } = useInventory();
   const [adjustingItem, setAdjustingItem] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -188,7 +191,7 @@ export default function InventoryPage() {
     },
     {
       accessorKey: "product.basePrice",
-      header: "Base Price",
+      header: "Sale Price",
       cell: ({ row }) => {
         const price = row.original.product?.basePrice;
         const isSupply = row.original.product?.isServiceSupply;
@@ -199,9 +202,9 @@ export default function InventoryPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       accessorKey: "product.purchasePrice",
-      header: "Purch. Price",
+      header: "Purchase Price",
       cell: ({ row }) => {
         const price = row.original.product?.purchasePrice;
         return (
@@ -210,7 +213,7 @@ export default function InventoryPage() {
           </span>
         );
       },
-    },
+    }] : []),
     {
       accessorKey: "product.createdAt",
       header: "Created Date",
@@ -271,7 +274,7 @@ export default function InventoryPage() {
             onClick={() => column.toggleSorting(column.getIsSorted() === "asc")}
             className="hover:bg-transparent"
           >
-            Stock
+            Available Stock
             <ArrowUpDown className="ml-2 h-4 w-4" />
           </Button>
         </div>
@@ -288,13 +291,13 @@ export default function InventoryPage() {
     },
     {
       accessorKey: "lowStockThreshold",
-      header: () => <div className="text-center">Threshold</div>,
+      header: () => <div className="text-center">Low Stock Alert</div>,
       cell: ({ row }) => <div className="text-center text-gray-500">{parseFloat(row.original.lowStockThreshold || 0).toFixed(3)}</div>,
     },
 
     {
       id: "status",
-      header: () => <div className="text-center">Status</div>,
+      header: () => <div className="text-center">Stock Status</div>,
       cell: ({ row }) => {
         const item = row.original;
         const isLowStock = item.quantity <= item.lowStockThreshold;
@@ -327,7 +330,7 @@ export default function InventoryPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       id: "actions",
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
@@ -361,8 +364,8 @@ export default function InventoryPage() {
           </div>
         );
       },
-    },
-  ], []);
+    }] : []),
+  ], [isAdmin]);
 
   return (
     <>
@@ -370,7 +373,7 @@ export default function InventoryPage() {
          <div className="relative max-w-sm w-full">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
-              placeholder="Search inventory..."
+              placeholder="Search product stock..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-gray-900 border-gray-700 h-10"
@@ -411,17 +414,19 @@ export default function InventoryPage() {
             </button>
           </div>
           
-          <Link href="/dashboard/inventory/add">
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap">
-              Add Inventory
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href="/dashboard/inventory/add">
+              <Button className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap">
+                Add Product Stock
+              </Button>
+            </Link>
+          )}
         </div>
 
       <Card>
         <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 space-y-0 pb-6 border-b border-gray-800">
           <CardTitle className="flex items-center gap-2">
-            <span>📦</span> Stock Levels 
+            <span>📦</span> Product Stock
             <Badge variant="secondary" className="ml-2 bg-orange-500/10 text-orange-400 border-orange-500/20">
               {filteredInventory.length}
             </Badge>

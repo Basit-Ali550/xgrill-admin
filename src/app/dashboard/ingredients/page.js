@@ -13,9 +13,12 @@ import { DataTable } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/select";
 import { RECIPE_UNITS, SORT_OPTIONS, DATE_FILTER_OPTIONS } from "@/constants";
+import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function IngredientsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -144,7 +147,7 @@ export default function IngredientsPage() {
     {
       accessorKey: "stock",
       header: ({ column }) => (
-          <div className="text-center">Current Stock</div>
+          <div className="text-center">Available Stock</div>
       ),
       cell: ({ row }) => {
         const stock = parseFloat(row.getValue("stock"));
@@ -163,19 +166,19 @@ export default function IngredientsPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       accessorKey: "costPerUnit",
       header: ({ column }) => (
-          <div className="text-center">Cost/Unit</div>
+          <div className="text-center">Purchase Price (per unit)</div>
       ),
       cell: ({ row }) => (
         <div className="text-center text-gray-400">Rs. {parseFloat(row.getValue("costPerUnit") || 0).toFixed(3)}</div>
       ),
-    },
+    }] : []),
     {
       accessorKey: "lowStockThreshold",
       header: ({ column }) => (
-          <div className="text-center">Threshold</div>
+          <div className="text-center">Low Stock Alert</div>
       ),
       cell: ({ row }) => (
         <div className="text-center text-gray-500">{parseFloat(row.getValue("lowStockThreshold") || 0).toFixed(3)}</div>
@@ -184,7 +187,7 @@ export default function IngredientsPage() {
     {
       id: "status",
       header: ({ column }) => (
-          <div className="text-center">Status</div>
+          <div className="text-center">Stock Status</div>
       ),
       cell: ({ row }) => {
         const stock = row.original.stock;
@@ -237,7 +240,7 @@ export default function IngredientsPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       id: "actions",
       header: ({ column }) => (
           <div className="text-right">Actions</div>
@@ -274,7 +277,7 @@ export default function IngredientsPage() {
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   return (
@@ -283,25 +286,27 @@ export default function IngredientsPage() {
          <div className="relative max-w-sm flex-1">
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
             <Input
-              placeholder="Search ingredients..."
+              placeholder="Search raw materials..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="pl-9 bg-gray-900 border-gray-700"
             />
           </div>
-          <Button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white ml-4"
-          >
-            <Plus size={18} className="mr-2" />
-            Add New Ingredient
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white ml-4"
+            >
+              <Plus size={18} className="mr-2" />
+              Add Raw Material
+            </Button>
+          )}
         </div>
 
         <Card>
           <CardHeader className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 space-y-0">
             <CardTitle className="flex items-center gap-2">
-              Raw Ingredients Stock <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-700 hover:bg-orange-200">{ingredients.length}</Badge>
+              Raw Materials Stock <Badge variant="secondary" className="ml-2 bg-orange-100 text-orange-700 hover:bg-orange-200">{ingredients.length}</Badge>
             </CardTitle>
             
             <div className="flex flex-wrap items-center gap-2 w-full md:w-auto">

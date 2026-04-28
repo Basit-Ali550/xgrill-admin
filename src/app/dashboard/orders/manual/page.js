@@ -608,7 +608,7 @@ export default function ManualOrderPage() {
                   <div
                     key={`${item.type}-${item.id}`}
                     onClick={() => addToCart(item, item.type)}
-                    className="group relative bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/10 transition-all cursor-pointer"
+                    className="group relative bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 ease-out hover:-translate-y-0.5 cursor-pointer"
                   >
                     <div className="aspect-square relative bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                       {item.image ? (
@@ -616,7 +616,7 @@ export default function ManualOrderPage() {
                           src={item.image}
                           alt={item.name}
                           fill
-                          className="object-cover transition-transform duration-300 group-hover:scale-110"
+                          className="object-cover transition-transform duration-500 ease-out group-hover:scale-[1.04] will-change-transform"
                         />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center">

@@ -9,15 +9,16 @@ import AddDealModal from "@/components/deals/AddDealModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Input } from "@/components/ui/input";
 import { getProductsAction } from "@/app/actions/products";
-import { 
-  Plus, 
-  Search, 
-  Tag, 
-  Edit, 
-  Trash2, 
-  Filter, 
-  Check, 
-  ChevronDown, 
+import { useAuth } from "@/context/AuthContext";
+import {
+  Plus,
+  Search,
+  Tag,
+  Edit,
+  Trash2,
+  Filter,
+  Check,
+  ChevronDown,
   AlertCircle,
   Eye,
   Package,
@@ -26,6 +27,8 @@ import {
 import toast from "react-hot-toast";
 
 export default function DealsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { deals, loading, deleteDeal, updateDeal, refetch } = useDeals();
   const [products, setProducts] = useState([]); // Store all products for lookup
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -183,9 +186,11 @@ export default function DealsPage() {
                   )}
                </div>
 
-               <Button onClick={handleCreate} className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-900/20">
-                 <Plus size={18} className="mr-2" /> Add Deal
-               </Button>
+               {isAdmin && (
+                 <Button onClick={handleCreate} className="bg-orange-600 hover:bg-orange-700 text-white shadow-lg shadow-orange-900/20">
+                   <Plus size={18} className="mr-2" /> Add Deal
+                 </Button>
+               )}
             </div>
         </div>
 
@@ -204,7 +209,7 @@ export default function DealsPage() {
                      ? "Try adjusting your filters" 
                      : "Create your first promotional bundle"}
                 </p>
-                <Button variant="outline" onClick={handleCreate}>Create Deal</Button>
+                {isAdmin && <Button variant="outline" onClick={handleCreate}>Create Deal</Button>}
              </div>
         ) : (
            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 overflow-y-auto pb-6 pr-2 custom-scrollbar">
@@ -216,9 +221,9 @@ export default function DealsPage() {
                    isActive={deal.isActive}
                    description={deal.description}
                    
-                   onToggleStatus={() => handleToggleStatus(deal)}
-                   onEdit={() => handleEdit(deal)}
-                   onDelete={() => setDeleteId(deal.id)}
+                   onToggleStatus={isAdmin ? () => handleToggleStatus(deal) : undefined}
+                   onEdit={isAdmin ? () => handleEdit(deal) : undefined}
+                   onDelete={isAdmin ? () => setDeleteId(deal.id) : undefined}
                    onView={() => setViewingDeal(deal)}
                    
                    priceDisplay={
@@ -386,9 +391,11 @@ export default function DealsPage() {
               <Button onClick={() => setViewingDeal(null)} variant="secondary">
                 Close
               </Button>
-              <Button onClick={() => { setViewingDeal(null); handleEdit(viewingDeal); }} className="bg-orange-600 hover:bg-orange-700 text-white">
-                <Edit size={16} className="mr-2" /> Edit Deal
-              </Button>
+              {isAdmin && (
+                <Button onClick={() => { setViewingDeal(null); handleEdit(viewingDeal); }} className="bg-orange-600 hover:bg-orange-700 text-white">
+                  <Edit size={16} className="mr-2" /> Edit Deal
+                </Button>
+              )}
             </div>
           </div>
         </div>

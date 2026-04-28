@@ -11,8 +11,11 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { useProducts } from "@/hooks/useProducts";
 import AddProductModal from "@/components/products/AddProductModal";
 import { ItemCard } from "@/components/dashboard/ItemCard";
+import { useAuth } from "@/context/AuthContext";
 
 export default function ProductsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { products, loading, deleteProduct, updateProduct } = useProducts();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState(null);
@@ -72,9 +75,11 @@ export default function ProductsPage() {
                 {products?.length || 0} items
               </Badge>
             </CardTitle>
-            <Button onClick={() => setIsAddModalOpen(true)} className="bg-orange-500 hover:bg-orange-600">
-              + Add Item
-            </Button>
+            {isAdmin && (
+              <Button onClick={() => setIsAddModalOpen(true)} className="bg-orange-500 hover:bg-orange-600">
+                + Add Item
+              </Button>
+            )}
           </div>
         </CardHeader>
         
@@ -82,21 +87,21 @@ export default function ProductsPage() {
           {loading ? (
             <LoadingSpinner />
           ) : products?.length === 0 ? (
-            <EmptyState icon="🍔" message="No products yet" actionLabel="Add your first item" onAction={() => setIsAddModalOpen(true)} />
+            <EmptyState icon="🍔" message="No products yet" actionLabel={isAdmin ? "Add your first item" : undefined} onAction={isAdmin ? () => setIsAddModalOpen(true) : undefined} />
           ) : (
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
               {products.map((product) => (
-                <ItemCard 
+                <ItemCard
                   key={product.id}
                   title={product.name}
                   subtitle={product.category}
                   image={product.image}
                   isActive={product.isActive}
                   description={product.description}
-                  
-                  onToggleStatus={() => handleToggleStatus(product)}
-                  onEdit={() => { setEditingProduct(product); setIsAddModalOpen(true); }}
-                  onDelete={() => setDeleteTarget({ id: product.id, name: product.name })}
+
+                  onToggleStatus={isAdmin ? () => handleToggleStatus(product) : undefined}
+                  onEdit={isAdmin ? () => { setEditingProduct(product); setIsAddModalOpen(true); } : undefined}
+                  onDelete={isAdmin ? () => setDeleteTarget({ id: product.id, name: product.name }) : undefined}
                   
                   topBadges={product.hasSizes && <Badge className="bg-blue-500/20 text-blue-400">Sizes</Badge>}
                   
