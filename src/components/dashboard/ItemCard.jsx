@@ -70,13 +70,15 @@ export function ItemCard({
           <div className="flex flex-col justify-center">{priceDisplay}</div>
 
           <div className="flex gap-2 items-center">
-            <div className="flex items-center mr-1">
-              <Switch
-                checked={isActive}
-                onCheckedChange={onToggleStatus}
-                className="h-5 w-9 data-[state=checked]:bg-green-500 cursor-pointer"
-              />
-            </div>
+            {onToggleStatus && (
+              <div className="flex items-center mr-1">
+                <Switch
+                  checked={isActive}
+                  onCheckedChange={onToggleStatus}
+                  className="h-5 w-9 data-[state=checked]:bg-green-500 cursor-pointer"
+                />
+              </div>
+            )}
 
             {onView && (
               <Button
@@ -89,23 +91,27 @@ export function ItemCard({
               </Button>
             )}
 
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onEdit}
-              className="h-9 w-9 p-0 rounded-full bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
-            >
-              <Edit size={16} />
-            </Button>
+            {onEdit && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onEdit}
+                className="h-9 w-9 p-0 rounded-full bg-blue-500/10 text-blue-400 hover:bg-blue-500 hover:text-white transition-all"
+              >
+                <Edit size={16} />
+              </Button>
+            )}
 
-            <Button
-              size="sm"
-              variant="ghost"
-              onClick={onDelete}
-              className="h-9 w-9 p-0 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
-            >
-              <Trash2 size={16} />
-            </Button>
+            {onDelete && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={onDelete}
+                className="h-9 w-9 p-0 rounded-full bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white transition-all"
+              >
+                <Trash2 size={16} />
+              </Button>
+            )}
           </div>
         </div>
       </div>

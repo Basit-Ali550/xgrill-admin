@@ -40,7 +40,12 @@ const navItems = [
 ];
 
 // Admin-only route prefixes — Receptionist cannot access these even via URL
-const ADMIN_ONLY_ROUTES = ["/dashboard/staff", "/dashboard/activity-log"];
+const ADMIN_ONLY_ROUTES = [
+  "/dashboard/staff",
+  "/dashboard/activity-log",
+  "/dashboard/inventory/add",
+  "/dashboard/inventory/edit",
+];
 
 export default function DashboardLayout({ children }) {
   const { isAuthenticated, loading, user, logout } = useAuth();

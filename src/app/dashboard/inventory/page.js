@@ -11,16 +11,19 @@ import { ArrowUpDown, RefreshCw, Trash2, Edit, Search, Package, Sparkles } from 
 import AdjustInventoryModal from "@/components/inventory/AdjustInventoryModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/select";
-import { 
-  INVENTORY_CATEGORIES, 
+import { useAuth } from "@/context/AuthContext";
+import {
+  INVENTORY_CATEGORIES,
   SERVICE_SUPPLY_CATEGORIES,
-  UNIT_TYPES, 
+  UNIT_TYPES,
   SERVICE_SUPPLY_UNITS,
-  SORT_OPTIONS, 
-  DATE_FILTER_OPTIONS 
+  SORT_OPTIONS,
+  DATE_FILTER_OPTIONS
 } from "@/constants";
 
 export default function InventoryPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const { inventory, loading, adjustInventory, deleteInventoryItem } = useInventory();
   const [adjustingItem, setAdjustingItem] = useState(null);
   const [deleteId, setDeleteId] = useState(null);
@@ -199,7 +202,7 @@ export default function InventoryPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       accessorKey: "product.purchasePrice",
       header: "Purch. Price",
       cell: ({ row }) => {
@@ -210,7 +213,7 @@ export default function InventoryPage() {
           </span>
         );
       },
-    },
+    }] : []),
     {
       accessorKey: "product.createdAt",
       header: "Created Date",
@@ -327,7 +330,7 @@ export default function InventoryPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       id: "actions",
       header: () => <div className="text-right">Actions</div>,
       cell: ({ row }) => {
@@ -361,8 +364,8 @@ export default function InventoryPage() {
           </div>
         );
       },
-    },
-  ], []);
+    }] : []),
+  ], [isAdmin]);
 
   return (
     <>
@@ -411,11 +414,13 @@ export default function InventoryPage() {
             </button>
           </div>
           
-          <Link href="/dashboard/inventory/add">
-            <Button className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap">
-              Add Inventory
-            </Button>
-          </Link>
+          {isAdmin && (
+            <Link href="/dashboard/inventory/add">
+              <Button className="bg-orange-600 hover:bg-orange-700 text-white whitespace-nowrap">
+                Add Inventory
+              </Button>
+            </Link>
+          )}
         </div>
 
       <Card>

@@ -13,9 +13,12 @@ import { DataTable } from "@/components/ui/data-table";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/select";
 import { RECIPE_UNITS, SORT_OPTIONS, DATE_FILTER_OPTIONS } from "@/constants";
+import { useAuth } from "@/context/AuthContext";
 import toast from "react-hot-toast";
 
 export default function IngredientsPage() {
+  const { user } = useAuth();
+  const isAdmin = user?.role === "ADMIN";
   const [ingredients, setIngredients] = useState([]);
   const [loading, setLoading] = useState(true);
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -163,7 +166,7 @@ export default function IngredientsPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       accessorKey: "costPerUnit",
       header: ({ column }) => (
           <div className="text-center">Cost/Unit</div>
@@ -171,7 +174,7 @@ export default function IngredientsPage() {
       cell: ({ row }) => (
         <div className="text-center text-gray-400">Rs. {parseFloat(row.getValue("costPerUnit") || 0).toFixed(3)}</div>
       ),
-    },
+    }] : []),
     {
       accessorKey: "lowStockThreshold",
       header: ({ column }) => (
@@ -237,7 +240,7 @@ export default function IngredientsPage() {
         );
       },
     },
-    {
+    ...(isAdmin ? [{
       id: "actions",
       header: ({ column }) => (
           <div className="text-right">Actions</div>
@@ -274,7 +277,7 @@ export default function IngredientsPage() {
           </div>
         );
       },
-    },
+    }] : []),
   ];
 
   return (
@@ -289,13 +292,15 @@ export default function IngredientsPage() {
               className="pl-9 bg-gray-900 border-gray-700"
             />
           </div>
-          <Button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="bg-orange-600 hover:bg-orange-700 text-white ml-4"
-          >
-            <Plus size={18} className="mr-2" />
-            Add New Ingredient
-          </Button>
+          {isAdmin && (
+            <Button
+              onClick={() => setIsAddModalOpen(true)}
+              className="bg-orange-600 hover:bg-orange-700 text-white ml-4"
+            >
+              <Plus size={18} className="mr-2" />
+              Add New Ingredient
+            </Button>
+          )}
         </div>
 
         <Card>
