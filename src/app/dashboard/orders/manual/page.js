@@ -3,7 +3,7 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import { getProductsAction } from "@/app/actions/products";
 import { getDealsAction } from "@/app/actions/deals";
-import { getUsersAction } from "@/app/actions/users";
+import { getCustomersAction } from "@/app/actions/users";
 import { placeOrderAction } from "@/app/actions/orders";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -125,10 +125,19 @@ export default function ManualOrderPage() {
 
   useEffect(() => {
     const timer = setTimeout(() => {
-      if (userSearch) fetchUsers(userSearch);
-    }, 500);
+      // Always fetch — empty query returns top regulars sorted by order count
+      fetchUsers(userSearch);
+    }, userSearch ? 300 : 0);
     return () => clearTimeout(timer);
   }, [userSearch]);
+
+  // Pre-load top customers as soon as dropdown opens (no need to type)
+  useEffect(() => {
+    if (isUserDropdownOpen && users.length === 0 && !userSearch) {
+      fetchUsers("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isUserDropdownOpen]);
 
   const fetchData = async () => {
     setIsLoading(true);
@@ -162,10 +171,10 @@ export default function ManualOrderPage() {
   const fetchUsers = async (query) => {
     setIsLoadingUsers(true);
     try {
-      const res = await getUsersAction(query);
+      const res = await getCustomersAction(query);
       if (res.success) setUsers(res.data);
     } catch (error) {
-      console.error("Failed to fetch users");
+      console.error("Failed to fetch customers");
     } finally {
       setIsLoadingUsers(false);
     }
@@ -866,10 +875,29 @@ export default function ManualOrderPage() {
                 <Input
                   ref={userSearchRef}
                   placeholder="Select Customer..."
+                  type="search"
+                  autoComplete="off"
+                  spellCheck={false}
                   className="pl-10 pr-24 bg-gray-950 border-gray-700 rounded-xl h-11 focus:ring-1 focus:ring-blue-500/50 transition-all"
                   value={userSearch}
                   onFocus={() => setIsUserDropdownOpen(true)}
                   onChange={(e) => setUserSearch(e.target.value)}
+                  onKeyDown={(e) => {
+                    // Prevent Enter from bubbling up and triggering form-submit / navigation
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      // If exactly one match, auto-select it
+                      if (users.length === 1) {
+                        setSelectedUser(users[0]);
+                        setIsUserDropdownOpen(false);
+                        setUserSearch("");
+                      }
+                    }
+                    if (e.key === "Escape") {
+                      setIsUserDropdownOpen(false);
+                    }
+                  }}
                 />
                 <Button
                   size="sm"
@@ -883,43 +911,81 @@ export default function ManualOrderPage() {
                 </Button>
 
                 {isUserDropdownOpen && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
-                    {!userSearch ? (
-                      <div className="p-4 flex flex-col items-center gap-2 text-center">
-                        <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center ring-1 ring-blue-500/20">
-                          <Search size={16} className="text-blue-400" />
-                        </div>
-                        <p className="text-sm text-gray-300 font-medium">Search for a customer</p>
-                        <p className="text-xs text-gray-500 max-w-55">Type a name or phone, or click <span className="text-orange-400 font-semibold">Manual</span> for guest checkout</p>
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-72 overflow-y-auto custom-scrollbar">
+                    {!userSearch && (
+                      <div className="px-3 py-2 bg-gray-800/40 border-b border-gray-800 sticky top-0">
+                        <p className="text-[10px] uppercase tracking-widest font-bold text-gray-500">
+                          Regular Customers
+                        </p>
                       </div>
-                    ) : isLoadingUsers ? (
+                    )}
+                    {isLoadingUsers ? (
                       <div className="p-4 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
                         <Loader2 className="animate-spin" size={16} />
-                        Searching...
+                        {userSearch ? "Searching..." : "Loading customers..."}
                       </div>
                     ) : users.length > 0 ? (
-                      users.map((user) => (
-                        <div
-                          key={user.id}
-                          className="p-3 hover:bg-gray-800 cursor-pointer flex items-center gap-3 border-b border-gray-800/50 last:border-0 transition-colors"
-                          onClick={() => {
-                            setSelectedUser(user);
-                            setIsUserDropdownOpen(false);
-                            setUserSearch("");
-                          }}
-                        >
-                          <div className="h-8 w-8 rounded-full bg-blue-500/20 flex items-center justify-center text-blue-400 font-bold text-xs ring-2 ring-blue-500/10">
-                            {user.name?.charAt(0).toUpperCase()}
+                      users.map((cust) => {
+                        const isRegular = (cust.orderCount || 0) > 1;
+                        const isNew = (cust.orderCount || 0) === 0;
+                        return (
+                          <div
+                            key={cust.id}
+                            className="p-3 hover:bg-gray-800 cursor-pointer flex items-center gap-3 border-b border-gray-800/50 last:border-0 transition-colors"
+                            onClick={() => {
+                              setSelectedUser(cust);
+                              setIsUserDropdownOpen(false);
+                              setUserSearch("");
+                            }}
+                          >
+                            <div
+                              className={`h-9 w-9 rounded-full flex items-center justify-center text-sm font-bold shrink-0 ring-2 ${
+                                isRegular
+                                  ? "bg-amber-500/20 text-amber-300 ring-amber-500/30"
+                                  : "bg-blue-500/20 text-blue-400 ring-blue-500/10"
+                              }`}
+                            >
+                              {cust.name?.charAt(0).toUpperCase() || "?"}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-center gap-2">
+                                <p className="text-sm font-semibold text-white truncate">{cust.name}</p>
+                                {isRegular && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-300 ring-1 ring-amber-500/30 shrink-0">
+                                    ★ Regular
+                                  </span>
+                                )}
+                                {isNew && (
+                                  <span className="text-[9px] font-bold uppercase tracking-wider px-1.5 py-0.5 rounded bg-gray-700/40 text-gray-400 ring-1 ring-gray-600/40 shrink-0">
+                                    New
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-xs text-gray-400 truncate">
+                                {cust.phone || cust.email || "No contact info"}
+                              </p>
+                            </div>
+                            <div className="text-right shrink-0">
+                              <p className="text-xs font-bold text-white tabular-nums">
+                                {cust.orderCount || 0}
+                              </p>
+                              <p className="text-[9px] text-gray-500 uppercase tracking-wider">
+                                {cust.orderCount === 1 ? "order" : "orders"}
+                              </p>
+                            </div>
                           </div>
-                          <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-white truncate">{user.name}</p>
-                            <p className="text-xs text-gray-400 truncate">{user.phone || user.email}</p>
-                          </div>
-                        </div>
-                      ))
+                        );
+                      })
                     ) : (
-                      <div className="p-4 text-center text-gray-500 text-sm">
-                        No customers match &quot;{userSearch}&quot;
+                      <div className="p-4 text-center">
+                        <p className="text-sm text-gray-400">
+                          {userSearch
+                            ? `No customers match "${userSearch}"`
+                            : "No customers yet"}
+                        </p>
+                        <p className="text-xs text-gray-600 mt-1">
+                          Click <span className="text-orange-400 font-semibold">Manual</span> for a one-time guest
+                        </p>
                       </div>
                     )}
                   </div>
