@@ -5,11 +5,9 @@ import { getProductsAction } from "@/app/actions/products";
 import { getDealsAction } from "@/app/actions/deals";
 import { getUsersAction } from "@/app/actions/users";
 import { placeOrderAction } from "@/app/actions/orders";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import toast from "react-hot-toast";
 import {
@@ -36,10 +34,10 @@ import {
 } from "lucide-react";
 import Image from "next/image";
 import { useAuth } from "@/context/AuthContext";
+import OrderReceipt from "@/components/orders/OrderReceipt";
 
 export default function ManualOrderPage() {
   const { user: currentUser } = useAuth();
-  const router = useRouter();
   const [products, setProducts] = useState([]);
   const [inventoryProducts, setInventoryProducts] = useState([]);
   const [deals, setDeals] = useState([]);
@@ -54,6 +52,7 @@ export default function ManualOrderPage() {
   const [deliveryAddress, setDeliveryAddress] = useState("");
   const [contactPhone, setContactPhone] = useState("");
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
+  const [placedOrder, setPlacedOrder] = useState(null);
 
   // Filter State
   const [searchQuery, setSearchQuery] = useState("");
@@ -73,6 +72,7 @@ export default function ManualOrderPage() {
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState(false);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const hasShownToast = useRef(false);
+  const userSearchRef = useRef(null);
   
   // URL Params for pre-filling
   const { search } = typeof window !== 'undefined' ? window.location : {};
@@ -186,28 +186,24 @@ export default function ManualOrderPage() {
   };
 
   const addToCart = (item, type) => {
+    const wasCartEmpty = cart.length === 0;
+
     setCart((prev) => {
-      const existing = prev.find(
-        (i) =>
-          (type === "product" && i.productId === (item.productId || item.id) && i.size === item.size) ||
-          (type === "inventory" && i.productId === item.id) ||
-          (type === "deal" && i.dealId === item.id)
-      );
+      const matches = (i) =>
+        (type === "product" && i.productId === (item.productId || item.id) && i.size === item.size) ||
+        (type === "inventory" && i.productId === (item.productId || item.id) && i.size === item.size) ||
+        (type === "deal" && i.dealId === item.id);
+
+      const existing = prev.find(matches);
 
       if (existing) {
-        return prev.map((i) =>
-          (type === "product" && i.productId === (item.productId || item.id) && i.size === item.size) ||
-          (type === "inventory" && i.productId === item.id) ||
-          (type === "deal" && i.dealId === item.id)
-            ? { ...i, quantity: i.quantity + 1 }
-            : i
-        );
+        return prev.map((i) => (matches(i) ? { ...i, quantity: i.quantity + 1 } : i));
       }
 
       return [
         ...prev,
         {
-          productId: type === "product" ? (item.productId || item.id) : (type === "inventory" ? item.id : undefined),
+          productId: type === "deal" ? undefined : (item.productId || item.id),
           dealId: type === "deal" ? item.id : undefined,
           name: item.name,
           price: type === "deal" ? item.dealPrice : item.basePrice || item.price,
@@ -218,6 +214,13 @@ export default function ManualOrderPage() {
         },
       ];
     });
+
+    // Auto-prompt for customer when first item lands in cart
+    if (wasCartEmpty && !selectedUser) {
+      setIsUserDropdownOpen(true);
+      setTimeout(() => userSearchRef.current?.focus(), 60);
+    }
+
     toast.success(`Added ${item.name}`, { duration: 1500 });
   };
 
@@ -271,11 +274,27 @@ export default function ManualOrderPage() {
       const result = await placeOrderAction(orderData);
 
       if (result.success) {
-        toast.success("Order placed! View it on the Order Board.");
+        toast.success("Order placed!", { duration: 2000 });
+        // Snapshot cart + customer details for the receipt before clearing state
+        const receiptOrder = {
+          ...result.data,
+          orderNumber: result.data?.orderNumber || `ORD-${Date.now()}`,
+          createdAt: result.data?.createdAt || new Date().toISOString(),
+          totalAmount: result.data?.totalAmount ?? calculateTotal(),
+          customerName: customerName,
+          customerPhone: contactPhone,
+          deliveryAddress: deliveryAddress,
+          notes,
+          items: cart.map((item) => ({
+            name: item.name,
+            size: item.size,
+            quantity: item.quantity,
+            price: item.price,
+          })),
+        };
+        setPlacedOrder(receiptOrder);
         setCart([]);
         setNotes("");
-        // Redirect to orders page so they can see the new order grouped with existing ones
-        router.push('/dashboard/orders');
       } else {
         toast.error(result.error || "Failed to place order");
       }
@@ -423,8 +442,8 @@ export default function ManualOrderPage() {
 
   const getItemBadge = (type) => {
     switch(type) {
-      case "deal": return { label: "DEAL", color: "bg-gradient-to-r from-red-500 to-pink-500" };
-      case "inventory": return { label: "DIRECT SALE", color: "bg-gradient-to-r from-green-500 to-emerald-500" };
+      case "deal": return { label: "DEAL", bg: "bg-rose-500/20", text: "text-rose-300", ring: "ring-rose-400/30", dot: "bg-rose-400" };
+      case "inventory": return { label: "Direct Sale", bg: "bg-emerald-500/20", text: "text-emerald-300", ring: "ring-emerald-400/30", dot: "bg-emerald-400" };
       default: return null;
     }
   };
@@ -623,12 +642,30 @@ export default function ManualOrderPage() {
             <div className="grid grid-cols-3 gap-5">
               {filteredItems.map((item) => {
                 const badge = getItemBadge(item.type);
+                const cartLine = cart.find((c) =>
+                  (item.type === "deal" && c.dealId === item.id) ||
+                  (item.type !== "deal" &&
+                    c.productId === (item.productId || item.id) &&
+                    c.size === item.size),
+                );
+                const cartQty = cartLine?.quantity || 0;
+                const inCart = cartQty > 0;
                 return (
                   <div
                     key={`${item.type}-${item.id}`}
                     onClick={() => addToCart(item, item.type)}
-                    className="group relative bg-gray-800/50 backdrop-blur border border-gray-700/50 rounded-2xl overflow-hidden hover:border-orange-500/50 hover:shadow-xl hover:shadow-orange-500/10 transition-all duration-300 ease-out hover:-translate-y-0.5 cursor-pointer"
+                    className={`group relative bg-gray-800/50 backdrop-blur border rounded-2xl overflow-hidden transition-all duration-300 ease-out cursor-pointer ${
+                      inCart
+                        ? "border-orange-500 ring-2 ring-orange-500/40 shadow-xl shadow-orange-500/20"
+                        : "border-gray-700/50 hover:border-orange-500/60 hover:shadow-xl hover:shadow-orange-500/15"
+                    }`}
                   >
+                    {inCart && (
+                      <div className="absolute top-3 right-3 z-20 flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-orange-500 text-white shadow-lg ring-2 ring-orange-300/40 text-[11px] font-bold">
+                        <Check size={12} className="stroke-[3px]" />
+                        In Cart × {cartQty}
+                      </div>
+                    )}
                     <div className="aspect-square relative bg-gradient-to-br from-gray-800 to-gray-900 overflow-hidden">
                       {item.image ? (
                         <Image
@@ -648,23 +685,42 @@ export default function ManualOrderPage() {
                           )}
                         </div>
                       )}
-                      {badge && (
-                        <Badge className={`absolute top-3 right-3 ${badge.color} border-0 shadow-lg text-[10px]`}>
+                      {badge && !inCart && (
+                        <div
+                          className={`absolute top-3 right-3 flex items-center gap-1.5 px-3 py-1.5 rounded-full ${badge.bg} ${badge.text} backdrop-blur-md ring-1 ${badge.ring} shadow-lg text-[11px] font-bold uppercase tracking-wider`}
+                        >
+                          <span className={`w-1.5 h-1.5 rounded-full ${badge.dot}`} />
                           {badge.label}
-                        </Badge>
+                        </div>
                       )}
                       {item.type !== "deal" && typeof item.availableStock === "number" && (
                         <div
-                          className={`absolute top-3 left-3 px-2 py-1 rounded-md backdrop-blur text-[10px] font-bold uppercase tracking-wide shadow-lg border ${
-                            item.availableStock <= 5
-                              ? "bg-red-500/80 text-white border-red-300/30"
-                              : item.availableStock <= 15
-                                ? "bg-amber-500/80 text-white border-amber-300/30"
-                                : "bg-emerald-500/80 text-white border-emerald-300/30"
-                          }`}
+                          className="absolute top-3 left-3 flex items-center gap-2 px-3 py-1.5 rounded-full bg-black/55 backdrop-blur-md ring-1 ring-white/10 shadow-lg"
                           title={`Available: ${item.availableStock}`}
                         >
-                          {item.availableStock} in stock
+                          <span
+                            className={`w-2 h-2 rounded-full ${
+                              item.availableStock <= 5
+                                ? "bg-red-400 animate-pulse"
+                                : item.availableStock <= 15
+                                  ? "bg-amber-400"
+                                  : "bg-emerald-400"
+                            }`}
+                          />
+                          <span
+                            className={`text-xs font-bold tabular-nums ${
+                              item.availableStock <= 5
+                                ? "text-red-200"
+                                : item.availableStock <= 15
+                                  ? "text-amber-200"
+                                  : "text-emerald-200"
+                            }`}
+                          >
+                            {item.availableStock}
+                            <span className="text-[10px] font-semibold opacity-75 uppercase tracking-wider ml-1">
+                              left
+                            </span>
+                          </span>
                         </div>
                       )}
                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
@@ -808,6 +864,7 @@ export default function ManualOrderPage() {
               <div className="relative group">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-500 group-hover:text-blue-400 transition-colors" size={16} />
                 <Input
+                  ref={userSearchRef}
                   placeholder="Select Customer..."
                   className="pl-10 pr-24 bg-gray-950 border-gray-700 rounded-xl h-11 focus:ring-1 focus:ring-blue-500/50 transition-all"
                   value={userSearch}
@@ -825,9 +882,17 @@ export default function ManualOrderPage() {
                   <Store size={12} className="mr-1.5" /> Manual
                 </Button>
 
-                {isUserDropdownOpen && userSearch && (
-                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-48 overflow-y-auto custom-scrollbar">
-                    {isLoadingUsers ? (
+                {isUserDropdownOpen && (
+                  <div className="absolute top-full left-0 right-0 mt-2 bg-gray-900 border border-gray-700 rounded-xl shadow-2xl z-50 max-h-60 overflow-y-auto custom-scrollbar">
+                    {!userSearch ? (
+                      <div className="p-4 flex flex-col items-center gap-2 text-center">
+                        <div className="h-10 w-10 rounded-full bg-blue-500/10 flex items-center justify-center ring-1 ring-blue-500/20">
+                          <Search size={16} className="text-blue-400" />
+                        </div>
+                        <p className="text-sm text-gray-300 font-medium">Search for a customer</p>
+                        <p className="text-xs text-gray-500 max-w-55">Type a name or phone, or click <span className="text-orange-400 font-semibold">Manual</span> for guest checkout</p>
+                      </div>
+                    ) : isLoadingUsers ? (
                       <div className="p-4 text-center text-gray-500 text-sm flex items-center justify-center gap-2">
                         <Loader2 className="animate-spin" size={16} />
                         Searching...
@@ -853,7 +918,9 @@ export default function ManualOrderPage() {
                         </div>
                       ))
                     ) : (
-                      <div className="p-4 text-center text-gray-500 text-sm">No users found</div>
+                      <div className="p-4 text-center text-gray-500 text-sm">
+                        No customers match &quot;{userSearch}&quot;
+                      </div>
                     )}
                   </div>
                 )}
@@ -1024,102 +1091,183 @@ export default function ManualOrderPage() {
         <div className="fixed inset-0 z-40" onClick={() => setIsUserDropdownOpen(false)} />
       )}
 
+      {/* Order Placed → Receipt Modal */}
+      <OrderReceipt
+        order={placedOrder}
+        isOpen={!!placedOrder}
+        onClose={() => setPlacedOrder(null)}
+        showSuccess
+      />
+
       {/* Deal View Modal */}
       {viewDeal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onClick={() => setViewDeal(null)}>
-          <div className="bg-gray-900 border border-gray-700 rounded-2xl w-full max-w-sm overflow-hidden shadow-2xl relative" onClick={e => e.stopPropagation()}>
-            <div className="relative h-40 bg-gray-800">
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-md animate-in fade-in duration-200"
+          onClick={() => setViewDeal(null)}
+        >
+          <div
+            className="bg-gradient-to-b from-gray-900 to-gray-950 border border-gray-800 rounded-3xl w-full max-w-md overflow-hidden shadow-2xl ring-1 ring-white/5 max-h-[92vh] flex flex-col animate-in zoom-in-95 duration-200"
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Hero Image */}
+            <div className="relative h-52 bg-gradient-to-br from-gray-800 to-gray-900 shrink-0">
               {viewDeal.image ? (
                 <Image src={viewDeal.image} alt={viewDeal.name} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
-                  <Tag size={48} className="text-gray-600" />
+                  <Tag size={56} className="text-gray-700" />
                 </div>
               )}
-              <button 
+              <div className="absolute inset-0 bg-gradient-to-t from-gray-950 via-gray-950/40 to-transparent" />
+
+              {/* Close */}
+              <button
                 onClick={() => setViewDeal(null)}
-                className="absolute top-3 right-3 h-8 w-8 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-black/70 transition-colors"
+                className="absolute top-3 right-3 h-9 w-9 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center hover:bg-black/70 ring-1 ring-white/10 transition-all cursor-pointer"
+                title="Close"
               >
                 <X size={16} />
               </button>
-            </div>
-            <div className="p-5">
-              <h3 className="text-xl font-bold text-white mb-1">{viewDeal.name}</h3>
-              {viewDeal.description && (
-                <p className="text-sm text-gray-400 mb-3 leading-relaxed">{viewDeal.description}</p>
+
+              {/* Save ribbon */}
+              {viewDeal.originalPrice && viewDeal.originalPrice > viewDeal.price && (
+                <div className="absolute top-3 left-3 px-3 py-1.5 bg-gradient-to-r from-emerald-500 to-green-600 rounded-full text-white text-[11px] font-bold shadow-lg ring-1 ring-emerald-300/30">
+                  SAVE {((1 - viewDeal.price / viewDeal.originalPrice) * 100).toFixed(0)}%
+                </div>
               )}
-              <div className="flex items-center gap-3 mb-4">
-                <span className="text-orange-400 font-bold text-lg">
-                  <PriceDisplay price={viewDeal.price} />
-                </span>
-                {viewDeal.originalPrice && viewDeal.originalPrice > viewDeal.price && (
-                  <>
-                    <span className="text-sm text-gray-500 line-through">
-                      Rs.{parseFloat(viewDeal.originalPrice).toFixed(0)}
-                    </span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-green-500/10 text-green-400 border border-green-500/20">
-                      Save {((1 - viewDeal.price / viewDeal.originalPrice) * 100).toFixed(0)}%
-                    </span>
-                  </>
+
+              {/* Title overlay */}
+              <div className="absolute bottom-0 left-0 right-0 p-5">
+                <h3 className="text-2xl font-bold text-white leading-tight drop-shadow-lg">
+                  {viewDeal.name}
+                </h3>
+                {viewDeal.description && (
+                  <p className="text-xs text-gray-300/90 mt-1 leading-relaxed line-clamp-2">
+                    {viewDeal.description}
+                  </p>
                 )}
               </div>
-              
-              <div className="space-y-3">
-                <h4 className="text-sm font-medium text-gray-400 uppercase tracking-wider">Includes</h4>
-                <div className="space-y-2 max-h-[300px] overflow-y-auto custom-scrollbar">
-                  {viewDeal.products?.map((id, idx) => {
-                    const prod = products.find(p => p.id === id) || inventoryProducts.find(p => p.id === id);
+            </div>
+
+            {/* Floating Price Card */}
+            <div className="px-5 -mt-5 relative z-10 shrink-0">
+              <div className="bg-gray-800/90 backdrop-blur-md border border-gray-700/60 rounded-2xl px-4 py-3 flex items-center justify-between shadow-xl shadow-black/30">
+                <div>
+                  <p className="text-[9px] uppercase tracking-[0.15em] text-gray-500 font-bold">Total Price</p>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-2xl font-bold text-white">
+                      <PriceDisplay price={viewDeal.price} />
+                    </span>
+                    {viewDeal.originalPrice && viewDeal.originalPrice > viewDeal.price && (
+                      <span className="text-xs text-gray-500 line-through">
+                        Rs.{parseFloat(viewDeal.originalPrice).toFixed(0)}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {viewDeal.originalPrice && viewDeal.originalPrice > viewDeal.price && (
+                  <div className="text-right">
+                    <p className="text-[9px] uppercase tracking-[0.15em] text-gray-500 font-bold">You Save</p>
+                    <p className="text-emerald-400 font-bold text-lg leading-tight mt-0.5">
+                      Rs.{(viewDeal.originalPrice - viewDeal.price).toFixed(0)}
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Items list - scrollable */}
+            <div className="flex-1 overflow-y-auto px-5 pt-4 pb-2 custom-scrollbar min-h-0">
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+                <span className="text-[10px] uppercase tracking-[0.2em] text-gray-500 font-bold flex items-center gap-1.5">
+                  <Package size={11} className="text-orange-400" />
+                  Includes ({viewDeal.products?.length || 0})
+                </span>
+                <div className="h-px flex-1 bg-gradient-to-r from-transparent via-gray-700 to-transparent" />
+              </div>
+
+              <div className="space-y-2">
+                {viewDeal.products?.map((id, idx) => {
+                  const prod = products.find((p) => p.id === id) || inventoryProducts.find((p) => p.id === id);
+                  if (!prod) {
                     return (
-                      <div key={idx} className="bg-gray-800/50 rounded-lg border border-gray-800 overflow-hidden">
-                        <div className="flex items-start gap-3 p-3">
-                          <div className="h-10 w-10 rounded-lg bg-gray-800 flex items-center justify-center shrink-0">
-                            {prod?.image ? (
-                               <div className="relative h-full w-full rounded-lg overflow-hidden">
-                                 <Image src={prod.image} alt={prod.name} fill className="object-cover" />
-                               </div>
-                            ) : (
-                               <Utensils size={16} className="text-gray-500" />
-                            )}
-                          </div>
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2 mb-0.5">
-                              <span className="text-gray-200 text-sm font-medium">{prod?.name || "Unknown Item"}</span>
-                              {prod?.category && (
-                                <span className="text-[9px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0">
-                                  {prod.category}
-                                </span>
-                              )}
-                            </div>
-                            {prod?.description && (
-                              <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed">{prod.description}</p>
-                            )}
-                            {prod?.variants && prod.variants.length > 0 && (
-                              <div className="flex flex-wrap gap-1 mt-1.5">
-                                {prod.variants.map((v, vi) => (
-                                  <span key={vi} className="text-[9px] px-1.5 py-0.5 rounded bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium">
-                                    {v.size} — Rs.{parseFloat(v.price).toFixed(0)}
-                                  </span>
-                                ))}
-                              </div>
-                            )}
-                            {prod?.basePrice && (!prod.variants || prod.variants.length === 0) && (
-                              <p className="text-[11px] text-orange-400 font-medium mt-1">
-                                Rs.{parseFloat(prod.basePrice).toFixed(0)}
-                              </p>
-                            )}
-                          </div>
-                        </div>
+                      <div key={idx} className="bg-gray-800/30 rounded-xl border border-gray-800 p-3 text-xs text-gray-500 italic">
+                        Unknown item
                       </div>
                     );
-                  })}
-                </div>
+                  }
+                  return (
+                    <div
+                      key={idx}
+                      className="group bg-gray-800/40 hover:bg-gray-800/70 rounded-xl border border-gray-800 hover:border-gray-700 overflow-hidden transition-all"
+                    >
+                      <div className="flex items-start gap-3 p-3">
+                        <div className="h-14 w-14 rounded-xl bg-gray-900 flex items-center justify-center shrink-0 overflow-hidden ring-1 ring-gray-800 group-hover:ring-orange-500/30 transition-all">
+                          {prod.image ? (
+                            <div className="relative h-full w-full">
+                              <Image src={prod.image} alt={prod.name} fill className="object-cover" />
+                            </div>
+                          ) : (
+                            <Utensils size={18} className="text-gray-600" />
+                          )}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 mb-1 flex-wrap">
+                            <span className="text-gray-100 text-sm font-semibold truncate max-w-full">
+                              {prod.name}
+                            </span>
+                            {prod.category && (
+                              <span className="text-[9px] uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/20 px-1.5 py-0.5 rounded shrink-0 font-bold">
+                                {prod.category}
+                              </span>
+                            )}
+                          </div>
+                          {prod.description && (
+                            <p className="text-[11px] text-gray-500 line-clamp-2 leading-relaxed mb-1.5">
+                              {prod.description}
+                            </p>
+                          )}
+                          {prod.variants && prod.variants.length > 0 ? (
+                            <div className="flex flex-wrap gap-1">
+                              {prod.variants.map((v, vi) => (
+                                <span
+                                  key={vi}
+                                  className="text-[10px] px-2 py-0.5 rounded-md bg-purple-500/10 text-purple-300 border border-purple-500/20 font-medium"
+                                >
+                                  {v.size}
+                                  <span className="text-purple-400/60 mx-1">·</span>
+                                  Rs.{parseFloat(v.price).toFixed(0)}
+                                </span>
+                              ))}
+                            </div>
+                          ) : prod.basePrice ? (
+                            <span className="text-[10px] px-2 py-0.5 rounded-md bg-orange-500/10 text-orange-300 border border-orange-500/20 font-semibold inline-block">
+                              Rs.{parseFloat(prod.basePrice).toFixed(0)}
+                            </span>
+                          ) : null}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
               </div>
-              
-              <Button 
-                className="w-full mt-6 bg-orange-500 hover:bg-orange-600 text-white"
-                onClick={() => { addToCart(viewDeal, "deal"); setViewDeal(null); }}
+            </div>
+
+            {/* Add to Cart */}
+            <div className="p-4 bg-gray-950/60 border-t border-gray-800/80 shrink-0">
+              <Button
+                onClick={() => {
+                  addToCart(viewDeal, "deal");
+                  setViewDeal(null);
+                }}
+                className="w-full h-12 bg-gradient-to-r from-orange-500 to-red-600 hover:from-orange-600 hover:to-red-700 text-white font-bold rounded-xl shadow-lg shadow-orange-500/20 transition-all duration-200 active:scale-[0.98] flex items-center justify-center gap-2"
               >
-                Add Deal to Cart
+                <Plus size={18} className="stroke-[3px]" />
+                <span>Add Deal to Cart</span>
+                <span className="ml-auto text-orange-50/90 text-sm font-semibold border-l border-orange-300/30 pl-3">
+                  <PriceDisplay price={viewDeal.price} />
+                </span>
               </Button>
             </div>
           </div>

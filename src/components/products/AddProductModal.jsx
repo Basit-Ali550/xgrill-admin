@@ -190,9 +190,9 @@ export default function AddProductModal({ isOpen, onClose, onAdd, product }) {
           );
 
           return (
-            <Form className="flex flex-col bg-gray-950 text-gray-200 font-sans">
+            <Form className="flex flex-col flex-1 min-h-0 bg-gray-950 text-gray-200 font-sans">
               {/* Content Area */}
-              <div className="p-6 space-y-8">
+              <div className="flex-1 min-h-0 overflow-y-auto custom-scrollbar p-6 space-y-8">
                 {/* 1. IDENTITY & IMAGE */}
                 <section className="space-y-6">
                   <ProductImageSection
@@ -255,7 +255,7 @@ export default function AddProductModal({ isOpen, onClose, onAdd, product }) {
               </div>
 
               {/* FOOTER */}
-              <div className="p-4 bg-gray-900 border-t border-gray-800 flex justify-end gap-3">
+              <div className="shrink-0 p-4 bg-gray-900 border-t border-gray-800 flex justify-end gap-3">
                 <Button type="button" variant="ghost" onClick={onClose}>
                   Cancel
                 </Button>

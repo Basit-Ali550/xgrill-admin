@@ -5,7 +5,8 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Plus, Trash2, Edit, RefreshCw, Search } from "lucide-react";
+import { Plus, Trash2, Pencil, SlidersHorizontal, RefreshCw, Search } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 import { getIngredientsAction, deleteIngredientAction } from "@/app/actions/ingredients";
 import AddIngredientModal from "@/components/ingredients/AddIngredientModal";
 import AdjustStockModal from "@/components/ingredients/AdjustStockModal";
@@ -243,37 +244,42 @@ export default function IngredientsPage() {
     ...(isAdmin ? [{
       id: "actions",
       header: ({ column }) => (
-          <div className="text-right">Actions</div>
+          <div className="text-right pr-2">Actions</div>
       ),
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setAdjustingIngredient(item)}
-              className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
-              title="Adjust Stock"
-            >
-              <RefreshCw size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleEdit(item)}
-              className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
-            >
-              <Edit size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => handleDelete(item.id)}
-              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-            >
-              <Trash2 size={16} />
-            </Button>
+          <div className="flex justify-end gap-1.5 pr-1">
+            <Tooltip content="Adjust Stock">
+              <button
+                type="button"
+                onClick={() => setAdjustingIngredient(item)}
+                aria-label="Adjust Stock"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20 hover:bg-orange-500 hover:text-white hover:ring-orange-400 transition-all cursor-pointer"
+              >
+                <SlidersHorizontal size={14} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Edit Material">
+              <button
+                type="button"
+                onClick={() => handleEdit(item)}
+                aria-label="Edit Material"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 hover:bg-blue-500 hover:text-white hover:ring-blue-400 transition-all cursor-pointer"
+              >
+                <Pencil size={14} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Delete Material">
+              <button
+                type="button"
+                onClick={() => handleDelete(item.id)}
+                aria-label="Delete Material"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 ring-1 ring-red-500/20 hover:bg-red-500 hover:text-white hover:ring-red-400 transition-all cursor-pointer"
+              >
+                <Trash2 size={14} />
+              </button>
+            </Tooltip>
           </div>
         );
       },

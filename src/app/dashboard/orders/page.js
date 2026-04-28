@@ -15,6 +15,7 @@ import toast from "react-hot-toast";
 import { DatePicker, ConfigProvider, theme } from 'antd';
 import dayjs from 'dayjs';
 import OrderDetailModal from "@/components/orders/OrderDetailModal";
+import OrderReceipt from "@/components/orders/OrderReceipt";
 import KanbanBoard from "@/components/orders/KanbanBoard";
 
 const { RangePicker } = DatePicker;
@@ -30,6 +31,26 @@ export default function OrdersPage() {
   const [searchQuery, setSearchQuery] = useState("");
   const [highlightedOrderId, setHighlightedOrderId] = useState(null);
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [receiptOrder, setReceiptOrder] = useState(null);
+
+  const handlePrintReceipt = (order) => {
+    if (!order) return;
+    setReceiptOrder({
+      orderNumber: order.orderNumber,
+      createdAt: order.createdAt,
+      totalAmount: order.totalAmount,
+      customerName: order.customerName || order.user?.name,
+      customerPhone: order.customerPhone || order.user?.phone,
+      deliveryAddress: order.deliveryAddress || order.user?.address,
+      notes: order.notes,
+      items: (order.items || []).map((it) => ({
+        name: it.product?.name || it.deal?.name || "Item",
+        size: it.size,
+        quantity: it.quantity,
+        price: it.price,
+      })),
+    });
+  };
 
   // Socket notifications
   useEffect(() => {
@@ -181,8 +202,15 @@ export default function OrdersPage() {
         order={selectedOrder}
         onStatusChange={handleStatusChange}
         onOrderSelect={(order) => setSelectedOrder(order)}
+        onPrintReceipt={handlePrintReceipt}
         allOrders={orders}
         isChef={false}
+      />
+
+      <OrderReceipt
+        order={receiptOrder}
+        isOpen={!!receiptOrder}
+        onClose={() => setReceiptOrder(null)}
       />
     </div>
   );

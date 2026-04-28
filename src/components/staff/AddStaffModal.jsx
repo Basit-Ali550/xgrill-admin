@@ -113,8 +113,8 @@ export default function AddStaffModal({
       >
         {({ values, isSubmitting, setFieldValue }) => {
           return (
-            <Form className="flex flex-col h-[70vh] md:h-auto bg-gray-950">
-              <div className="flex-1 p-6 overflow-y-auto">
+            <Form className="flex flex-col flex-1 min-h-0 bg-gray-950">
+              <div className="flex-1 min-h-0 p-6 overflow-y-auto custom-scrollbar">
                 <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
                   {/* Role Section */}
                   <div className="space-y-4">
@@ -181,7 +181,7 @@ export default function AddStaffModal({
 
                   {/* Documents Section */}
                   <div className="grid grid-cols-1 gap-6">
-                    <div className="bg-gray-900/30 p-4 rounded-xl border border-dashed border-gray-800 hover:border-gray-700 transition-colors flex items-start gap-4">
+                    <div className="bg-gray-900/30 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors flex items-start gap-4">
                       {/* Left: Uploader */}
                       <div className="shrink-0 w-32 h-32">
                         <ImageUploader
@@ -210,7 +210,7 @@ export default function AddStaffModal({
                       </div>
                     </div>
 
-                    <div className="bg-gray-900/30 p-4 rounded-xl border border-dashed border-gray-800 hover:border-gray-700 transition-colors flex items-start gap-4">
+                    <div className="bg-gray-900/30 p-4 rounded-xl border border-gray-800 hover:border-gray-700 transition-colors flex items-start gap-4">
                       {/* Left: Uploader */}
                       <div className="shrink-0 w-48 h-32">
                         <ImageUploader

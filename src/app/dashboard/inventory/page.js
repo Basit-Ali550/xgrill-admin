@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { useInventory } from "@/hooks/useInventory";
 import { DataTable } from "@/components/ui/data-table";
 import Link from "next/link";
-import { ArrowUpDown, RefreshCw, Trash2, Edit, Search, Package, Sparkles } from "lucide-react";
+import { ArrowUpDown, RefreshCw, Trash2, Pencil, SlidersHorizontal, Search, Package, Sparkles } from "lucide-react";
+import { Tooltip } from "@/components/ui/Tooltip";
 import AdjustInventoryModal from "@/components/inventory/AdjustInventoryModal";
 import { ConfirmDialog } from "@/components/ui/ConfirmDialog";
 import { Select } from "@/components/ui/select";
@@ -332,35 +333,40 @@ export default function InventoryPage() {
     },
     ...(isAdmin ? [{
       id: "actions",
-      header: () => <div className="text-right">Actions</div>,
+      header: () => <div className="text-right pr-2">Actions</div>,
       cell: ({ row }) => {
         const item = row.original;
         return (
-          <div className="flex justify-end gap-2">
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setAdjustingItem(item)}
-              className="text-orange-400 hover:text-orange-300 hover:bg-orange-400/10"
-              title="Adjust Stock"
-            >
-              <RefreshCw size={16} />
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              className="text-blue-400 hover:text-blue-300 hover:bg-blue-400/10"
-            >
-               <Link href={`/dashboard/inventory/edit/${item.id}`}><Edit size={16} /></Link>
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setDeleteId(item.id)}
-              className="text-red-400 hover:text-red-300 hover:bg-red-400/10"
-            >
-              <Trash2 size={16} />
-            </Button>
+          <div className="flex justify-end gap-1.5 pr-1">
+            <Tooltip content="Adjust Stock">
+              <button
+                type="button"
+                onClick={() => setAdjustingItem(item)}
+                aria-label="Adjust Stock"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-orange-500/10 text-orange-400 ring-1 ring-orange-500/20 hover:bg-orange-500 hover:text-white hover:ring-orange-400 transition-all cursor-pointer"
+              >
+                <SlidersHorizontal size={14} />
+              </button>
+            </Tooltip>
+            <Tooltip content="Edit Item">
+              <Link
+                href={`/dashboard/inventory/edit/${item.id}`}
+                aria-label="Edit Item"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-blue-500/10 text-blue-400 ring-1 ring-blue-500/20 hover:bg-blue-500 hover:text-white hover:ring-blue-400 transition-all"
+              >
+                <Pencil size={14} />
+              </Link>
+            </Tooltip>
+            <Tooltip content="Delete Item">
+              <button
+                type="button"
+                onClick={() => setDeleteId(item.id)}
+                aria-label="Delete Item"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-red-500/10 text-red-400 ring-1 ring-red-500/20 hover:bg-red-500 hover:text-white hover:ring-red-400 transition-all cursor-pointer"
+              >
+                <Trash2 size={14} />
+              </button>
+            </Tooltip>
           </div>
         );
       },

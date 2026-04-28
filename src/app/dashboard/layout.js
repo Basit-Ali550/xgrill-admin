@@ -21,6 +21,7 @@ import {
 import { GiGrainBundle } from "react-icons/gi";
 import { FaFire } from "react-icons/fa";
 import { Header } from "@/components/Header";
+import { Tooltip } from "@/components/ui/Tooltip";
 
 // Page Title Context
 const PageTitleContext = createContext({ title: "Dashboard", setTitle: () => {} });
@@ -29,14 +30,14 @@ export const usePageTitle = () => useContext(PageTitleContext);
 // Navigation items
 const navItems = [
   { href: "/dashboard", label: "Dashboard", Icon: MdDashboard },
-  { href: "/dashboard/orders", label: "Orders", Icon: MdReceipt },
-  { href: "/dashboard/orders/manual", label: "POS", Icon: MdAddShoppingCart },
+  { href: "/dashboard/orders", label: "Live Orders", Icon: MdReceipt },
+  { href: "/dashboard/orders/manual", label: "New Order", Icon: MdAddShoppingCart },
   { href: "/dashboard/ingredients", label: "Raw Materials", Icon: GiGrainBundle },
   { href: "/dashboard/inventory", label: "Product Stock", Icon: MdInventory2 },
-  { href: "/dashboard/products", label: "Products", Icon: MdFastfood },
-  { href: "/dashboard/deals", label: "Deals", Icon: MdLocalOffer },
-  { href: "/dashboard/staff", label: "Staff", Icon: MdPeople, adminOnly: true },
-  { href: "/dashboard/activity-log", label: "Activity Log", Icon: MdHistory, adminOnly: true },
+  { href: "/dashboard/products", label: "Menu Items", Icon: MdFastfood },
+  { href: "/dashboard/deals", label: "Bundles & Offers", Icon: MdLocalOffer },
+  { href: "/dashboard/staff", label: "Team", Icon: MdPeople, adminOnly: true },
+  { href: "/dashboard/activity-log", label: "Audit Log", Icon: MdHistory, adminOnly: true },
 ];
 
 // Admin-only route prefixes — Receptionist cannot access these even via URL
@@ -150,7 +151,7 @@ export default function DashboardLayout({ children }) {
           `}
           style={{ width: sidebarWidth, minWidth: sidebarWidth }}
         >
-          {/* Logo + Collapse Toggle (top) */}
+          {/* Logo */}
           <div className="border-b border-gray-700/50">
             <div className={`flex items-center gap-2 p-3 ${showLabels ? "justify-between" : "justify-center"}`}>
               <Link href="/dashboard" className="flex items-center gap-3 no-underline min-w-0">
@@ -167,31 +168,12 @@ export default function DashboardLayout({ children }) {
                   </div>
                 )}
               </Link>
-              {isMobile ? (
+              {isMobile && (
                 <button onClick={closeSidebar} className="p-2 rounded-lg text-gray-400 hover:text-white hover:bg-gray-800 transition-colors shrink-0">
                   <MdClose size={20} />
                 </button>
-              ) : showLabels ? (
-                <button
-                  onClick={() => setIsCollapsed(true)}
-                  className="p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-gray-800 transition-all shrink-0"
-                  title="Collapse sidebar"
-                >
-                  <MdChevronLeft size={20} />
-                </button>
-              ) : null}
+              )}
             </div>
-            {!isMobile && !showLabels && (
-              <div className="px-2 pb-2">
-                <button
-                  onClick={() => setIsCollapsed(false)}
-                  className="w-full p-2 rounded-lg text-gray-400 hover:text-orange-400 hover:bg-gray-800 transition-all flex items-center justify-center"
-                  title="Expand sidebar"
-                >
-                  <MdChevronRight size={20} />
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Navigation */}
@@ -201,7 +183,7 @@ export default function DashboardLayout({ children }) {
               .map((item) => {
               const active = isActive(item.href);
               const Icon = item.Icon;
-              return (
+              const link = (
                 <Link
                   key={item.href}
                   href={item.href}
@@ -211,12 +193,21 @@ export default function DashboardLayout({ children }) {
                     ${active ? "bg-orange-500/20 text-orange-400 border border-orange-500/30" : "text-gray-400 hover:text-white hover:bg-gray-800/50 border border-transparent"}
                     ${!showLabels ? "justify-center" : ""}
                   `}
-                  title={!showLabels ? item.label : undefined}
                 >
                   <Icon size={22} className={`shrink-0 ${active ? "text-orange-400" : ""}`} />
                   {showLabels && <span className="font-medium">{item.label}</span>}
                 </Link>
               );
+              return !showLabels && !isMobile ? (
+                <Tooltip
+                  key={item.href}
+                  content={item.label}
+                  side="right"
+                  wrapperClassName="block"
+                >
+                  {link}
+                </Tooltip>
+              ) : link;
             })}
           </nav>
 
@@ -227,6 +218,19 @@ export default function DashboardLayout({ children }) {
             </div>
           )}
         </aside>
+
+        {/* Collapse Toggle Tab (attached to sidebar's right edge, always visible) */}
+        {!isMobile && (
+          <button
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            style={{ left: sidebarWidth - 1 }}
+            className="fixed top-24 z-50 h-12 w-5 rounded-r-md bg-gray-800/95 backdrop-blur border border-l-0 border-gray-700/70 text-gray-400 hover:text-orange-400 hover:bg-gray-900 hover:border-orange-500/40 flex items-center justify-center shadow-lg shadow-black/40 transition-colors duration-200 cursor-pointer"
+            title={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+            aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+          >
+            {isCollapsed ? <MdChevronRight size={14} /> : <MdChevronLeft size={14} />}
+          </button>
+        )}
 
         {/* Main Area */}
         <div className="flex-1 flex flex-col h-screen overflow-hidden">

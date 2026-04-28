@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { useActivityLog } from "@/hooks/useActivityLog";
 import { useAuth } from "@/context/AuthContext";
 import { api } from "@/lib/api";
@@ -30,6 +30,14 @@ import {
   Shield,
   Activity,
   User,
+  Wallet,
+  ShoppingBag,
+  UserCircle2,
+  TrendingUp,
+  TrendingDown,
+  Hash,
+  FileText,
+  ArrowRight,
 } from "lucide-react";
 
 dayjs.extend(relativeTime);
@@ -70,14 +78,78 @@ function ActivityIcon({ action }) {
   );
 }
 
-function DetailRow({ label, value, color }) {
+// Inline stat — icon + label + value, designed to live in a horizontal strip.
+function InlineStat({ icon: Icon, label, value, accent = "text-white", iconColor }) {
   if (value === undefined || value === null || value === "") return null;
   return (
-    <div className="flex items-center gap-2 text-sm">
-      <span className="text-gray-500 min-w-[80px]">{label}:</span>
-      <span className={`font-medium ${color || "text-gray-300"}`}>
-        {typeof value === "number" ? value.toLocaleString() : String(value)}
-      </span>
+    <div className="flex items-center gap-2 min-w-0">
+      {Icon && (
+        <div
+          className="h-7 w-7 shrink-0 rounded-md flex items-center justify-center bg-gray-800/80 ring-1 ring-gray-700/50"
+          style={iconColor ? { color: iconColor } : undefined}
+        >
+          <Icon size={13} />
+        </div>
+      )}
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500">
+          {label}
+        </span>
+        <span className={`text-sm font-semibold tabular-nums truncate ${accent}`}>
+          {typeof value === "number" ? value.toLocaleString() : String(value)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
+// Inline before → after change
+function InlineChange({ icon: Icon, label, before, after, iconColor }) {
+  return (
+    <div className="flex items-center gap-2 min-w-0">
+      {Icon && (
+        <div
+          className="h-7 w-7 shrink-0 rounded-md flex items-center justify-center bg-gray-800/80 ring-1 ring-gray-700/50"
+          style={iconColor ? { color: iconColor } : undefined}
+        >
+          <Icon size={13} />
+        </div>
+      )}
+      <div className="flex flex-col leading-tight min-w-0">
+        <span className="text-[9px] font-bold uppercase tracking-[0.18em] text-gray-500 truncate">
+          {label}
+        </span>
+        <div className="flex items-center gap-1.5 text-sm">
+          <span className="text-red-400/80 line-through truncate">
+            {String(before ?? "—")}
+          </span>
+          <ArrowRight size={11} className="text-gray-600 shrink-0" />
+          <span className="text-emerald-400 font-semibold truncate">
+            {String(after ?? "—")}
+          </span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Divider() {
+  return (
+    <div className="h-8 w-px bg-gray-700/50 shrink-0" aria-hidden="true" />
+  );
+}
+
+// Wraps stats with vertical dividers between them.
+function Strip({ children }) {
+  const items = React.Children.toArray(children).filter(Boolean);
+  return (
+    <div className="flex items-center gap-4 flex-wrap">
+      {items.map((child, idx) => (
+        <React.Fragment key={idx}>
+          {child}
+          {idx < items.length - 1 && <Divider />}
+        </React.Fragment>
+      ))}
     </div>
   );
 }
@@ -85,159 +157,317 @@ function DetailRow({ label, value, color }) {
 function DetailsPanel({ details, action }) {
   if (!details || Object.keys(details).length === 0) return null;
 
-  // Adjust action: show old/new stock
+  // Adjust action
   if (action === "ADJUST") {
+    const change = details.adjustment;
     return (
-      <div className="mt-2 p-3 bg-gray-900/60 rounded-lg border border-gray-700/40 flex flex-wrap items-center gap-x-6 gap-y-2">
-        <DetailRow label="Old Stock" value={details.oldStock} />
-        <DetailRow label="New Stock" value={details.newStock} />
-        <DetailRow label="Change" value={details.adjustment > 0 ? `+${details.adjustment}` : details.adjustment} color={details.adjustment > 0 ? "text-green-400" : "text-red-400"} />
-        {details.reason && <DetailRow label="Reason" value={details.reason} />}
-      </div>
+      <Strip>
+        <InlineStat
+          icon={TrendingDown}
+          iconColor="#9ca3af"
+          label="Old Stock"
+          value={details.oldStock}
+          accent="text-gray-300"
+        />
+        <InlineStat
+          icon={TrendingUp}
+          iconColor="#fff"
+          label="New Stock"
+          value={details.newStock}
+          accent="text-white"
+        />
+        <InlineStat
+          icon={change > 0 ? TrendingUp : TrendingDown}
+          iconColor={change > 0 ? "#34d399" : "#f87171"}
+          label="Change"
+          value={change > 0 ? `+${change}` : change}
+          accent={change > 0 ? "text-emerald-400" : "text-red-400"}
+        />
+        {details.reason && (
+          <InlineStat
+            icon={FileText}
+            iconColor="#fbbf24"
+            label="Reason"
+            value={details.reason}
+            accent="text-amber-300"
+          />
+        )}
+      </Strip>
     );
   }
 
-  // Update action: show before/after
+  // Update action
   if (action === "UPDATE" && details.before && details.after) {
     const keys = [...new Set([...Object.keys(details.before), ...Object.keys(details.after)])];
-    const changes = keys.filter(k => JSON.stringify(details.before[k]) !== JSON.stringify(details.after[k]));
-
+    const changes = keys.filter(
+      (k) => JSON.stringify(details.before[k]) !== JSON.stringify(details.after[k]),
+    );
     if (changes.length === 0) return null;
 
     return (
-      <div className="mt-2 p-3 bg-gray-900/60 rounded-lg border border-gray-700/40">
-        <p className="text-xs text-gray-500 mb-2 uppercase tracking-wider">Changes</p>
-        <div className="space-y-1">
-          {changes.map((key) => (
-            <div key={key} className="flex items-center gap-2 text-sm">
-              <span className="text-gray-500 min-w-[80px] capitalize">{key}:</span>
-              <span className="text-red-400/70 line-through">{String(details.before[key] ?? "—")}</span>
-              <span className="text-gray-600">→</span>
-              <span className="text-green-400 font-medium">{String(details.after[key] ?? "—")}</span>
-            </div>
-          ))}
-        </div>
-      </div>
+      <Strip>
+        {changes.map((key) => (
+          <InlineChange
+            key={key}
+            icon={ArrowRight}
+            iconColor="#a78bfa"
+            label={key}
+            before={details.before[key]}
+            after={details.after[key]}
+          />
+        ))}
+      </Strip>
     );
   }
 
-  // Delete action: show deleted item
+  // Delete
   if (action === "DELETE" && details.deleted) {
     return (
-      <div className="mt-2 p-3 bg-red-500/5 rounded-lg border border-red-500/20 space-y-1">
-        {Object.entries(details.deleted).map(([key, value]) => (
-          <DetailRow key={key} label={key} value={value} color="text-red-400" />
+      <Strip>
+        {Object.entries(details.deleted).map(([k, v]) => (
+          <InlineStat
+            key={k}
+            icon={Hash}
+            iconColor="#f87171"
+            label={k}
+            value={v}
+            accent="text-red-300"
+          />
         ))}
-      </div>
+      </Strip>
     );
   }
 
-  // Order actions: show order details
+  // Order placed
   if (action === "PLACE_ORDER") {
     return (
-      <div className="mt-2 p-3 bg-gray-900/60 rounded-lg border border-gray-700/40 space-y-1">
-        <DetailRow label="Total" value={`Rs. ${details.totalAmount?.toLocaleString()}`} color="text-green-400" />
-        <DetailRow label="Items" value={details.itemCount} />
-        {details.customerName && <DetailRow label="Customer" value={details.customerName} />}
-      </div>
+      <Strip>
+        <InlineStat
+          icon={Wallet}
+          iconColor="#34d399"
+          label="Total"
+          value={`Rs. ${details.totalAmount?.toLocaleString()}`}
+          accent="text-emerald-400"
+        />
+        <InlineStat
+          icon={ShoppingBag}
+          iconColor="#60a5fa"
+          label="Items"
+          value={details.itemCount}
+          accent="text-blue-300"
+        />
+        {details.customerName && (
+          <InlineStat
+            icon={UserCircle2}
+            iconColor="#c084fc"
+            label="Customer"
+            value={details.customerName}
+            accent="text-purple-300"
+          />
+        )}
+      </Strip>
     );
   }
 
+  // Status change / cancel
   if (action === "UPDATE_STATUS" || action === "CANCEL") {
     return (
-      <div className="mt-2 p-3 bg-gray-900/60 rounded-lg border border-gray-700/40 space-y-1">
+      <Strip>
         {details.oldStatus && details.newStatus && (
-          <div className="flex items-center gap-2 text-sm">
-            <span className="text-gray-500 min-w-[80px]">Status:</span>
-            <span className="text-orange-400">{details.oldStatus}</span>
-            <span className="text-gray-600">→</span>
-            <span className="text-green-400 font-medium">{details.newStatus}</span>
-          </div>
+          <InlineChange
+            icon={ArrowRight}
+            iconColor="#22d3ee"
+            label="Status"
+            before={details.oldStatus}
+            after={details.newStatus}
+          />
         )}
-        {details.previousStatus && <DetailRow label="Was" value={details.previousStatus} color="text-orange-400" />}
-        {details.totalAmount && <DetailRow label="Amount" value={`Rs. ${details.totalAmount?.toLocaleString()}`} />}
-      </div>
+        {details.previousStatus && !details.oldStatus && (
+          <InlineStat
+            icon={Hash}
+            iconColor="#fbbf24"
+            label="Was"
+            value={details.previousStatus}
+            accent="text-amber-400"
+          />
+        )}
+        {details.totalAmount && (
+          <InlineStat
+            icon={Wallet}
+            iconColor="#34d399"
+            label="Amount"
+            value={`Rs. ${details.totalAmount?.toLocaleString()}`}
+            accent="text-emerald-400"
+          />
+        )}
+      </Strip>
     );
   }
 
-  // CREATE action: show created item
+  // Create
   if (action === "CREATE") {
     return (
-      <div className="mt-2 p-3 bg-green-500/5 rounded-lg border border-green-500/20 space-y-1">
-        {Object.entries(details).map(([key, value]) => (
-          <DetailRow key={key} label={key} value={value} color="text-green-400" />
+      <Strip>
+        {Object.entries(details).map(([k, v]) => (
+          <InlineStat
+            key={k}
+            icon={Hash}
+            iconColor="#34d399"
+            label={k}
+            value={v}
+            accent="text-emerald-300"
+          />
         ))}
-      </div>
+      </Strip>
     );
   }
 
   return null;
 }
 
-function LogEntry({ log }) {
+function LogRow({ log, isLast }) {
   const [expanded, setExpanded] = useState(false);
   const actionConfig = ACTION_CONFIG[log.action] || ACTION_CONFIG.UPDATE;
   const entityConfig = ENTITY_CONFIG[log.entity] || ENTITY_CONFIG.INVENTORY;
+  const ActionIcon = actionConfig.icon;
   const EntityIcon = entityConfig.icon;
   const hasDetails = log.details && Object.keys(log.details).length > 0;
+  const userName = log.user?.name || "System";
+  const initials = userName
+    .split(" ")
+    .map((n) => n[0])
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
 
   return (
-    <div className="group relative flex gap-4 pb-6 last:pb-0">
-      {/* Timeline Line */}
-      <div className="absolute left-[18px] top-[36px] bottom-0 w-px bg-gray-700/50 group-last:hidden" />
+    <>
+      <tr
+        onClick={() => hasDetails && setExpanded(!expanded)}
+        className={`group transition-colors ${
+          hasDetails ? "cursor-pointer" : ""
+        } ${expanded ? "bg-gray-800/40" : "hover:bg-gray-800/30"} ${
+          isLast || expanded ? "" : "border-b border-gray-700/30"
+        }`}
+      >
+        {/* TIME */}
+        <td className="px-4 py-3 align-top whitespace-nowrap">
+          <div className="flex flex-col">
+            <span
+              className="text-sm font-medium text-gray-200"
+              title={dayjs(log.createdAt).format("YYYY-MM-DD HH:mm:ss")}
+            >
+              {dayjs(log.createdAt).fromNow()}
+            </span>
+            <span className="text-[11px] text-gray-500 font-mono">
+              {dayjs(log.createdAt).format("h:mm A")}
+            </span>
+          </div>
+        </td>
 
-      {/* Icon */}
-      <ActivityIcon action={log.action} />
+        {/* USER */}
+        <td className="px-4 py-3 align-top whitespace-nowrap">
+          <div className="flex items-center gap-2.5">
+            <div className="h-8 w-8 rounded-full bg-linear-to-br from-purple-500/30 to-indigo-500/30 ring-1 ring-purple-400/30 flex items-center justify-center text-xs font-bold text-purple-300 shrink-0">
+              {initials || <User size={14} />}
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-semibold text-white truncate">
+                {userName}
+              </span>
+              {log.user?.role && (
+                <span className="text-[10px] text-gray-500 uppercase tracking-wider">
+                  {log.user.role}
+                </span>
+              )}
+            </div>
+          </div>
+        </td>
 
-      {/* Content */}
-      <div className="flex-1 min-w-0">
-        {/* Header */}
-        <div className="flex items-start justify-between gap-2">
-          <div className="flex-1 min-w-0">
-            {/* User + Action */}
-            <p className="text-sm text-gray-200">
-              <span className="font-semibold text-white">{log.user?.name || "System"}</span>
-              {" "}
-              <span style={{ color: actionConfig.color }}>{actionConfig.label.toLowerCase()}</span>
-              {" "}
-              <span className="inline-flex items-center gap-1 text-gray-400">
-                <EntityIcon size={14} style={{ color: entityConfig.color }} />
-                {entityConfig.label.toLowerCase()}
-              </span>
-              {" "}
-              <span className="font-medium text-white">{log.entityName}</span>
-            </p>
+        {/* ACTION */}
+        <td className="px-4 py-3 align-top">
+          <span
+            className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-bold uppercase tracking-wider ring-1"
+            style={{
+              background: actionConfig.bg,
+              color: actionConfig.color,
+              borderColor: actionConfig.color + "40",
+            }}
+          >
+            <ActionIcon size={12} />
+            {actionConfig.label}
+          </span>
+        </td>
 
-            {/* Meta */}
-            <div className="flex items-center gap-3 mt-1">
-              <span className="text-xs text-gray-500" title={dayjs(log.createdAt).format("YYYY-MM-DD HH:mm:ss")}>
-                {dayjs(log.createdAt).fromNow()}
+        {/* ENTITY */}
+        <td className="px-4 py-3 align-top">
+          <div className="flex items-center gap-2 min-w-0">
+            <div
+              className="h-7 w-7 rounded-lg border-none flex items-center justify-center shrink-0 "
+              style={{
+                background: entityConfig.color + "15",
+                borderColor: entityConfig.color + "30",
+              }}
+            >
+              <EntityIcon size={14} style={{ color: entityConfig.color }} />
+            </div>
+            <div className="flex flex-col min-w-0">
+              <span className="text-sm font-medium text-white truncate">
+                {log.entityName}
               </span>
-              <span className="text-xs px-1.5 py-0.5 rounded" style={{ background: actionConfig.bg, color: actionConfig.color }}>
-                {log.action}
-              </span>
-              <span className="text-xs text-gray-600">
-                {dayjs(log.createdAt).format("DD MMM YYYY, h:mm A")}
+              <span
+                className="text-[10px] uppercase tracking-wider"
+                style={{ color: entityConfig.color }}
+              >
+                {entityConfig.label}
               </span>
             </div>
           </div>
+        </td>
 
-          {/* Expand Button */}
-          {hasDetails && (
-            <button
-              onClick={() => setExpanded(!expanded)}
-              className="p-1 rounded-md text-gray-500 hover:text-white hover:bg-gray-700/50 transition-colors cursor-pointer shrink-0"
-              title={expanded ? "Collapse details" : "View details"}
+        {/* TIMESTAMP */}
+        <td className="px-4 py-3 align-top whitespace-nowrap text-right hidden md:table-cell">
+          <span className="text-xs text-gray-500 font-mono">
+            {dayjs(log.createdAt).format("DD MMM, h:mm A")}
+          </span>
+        </td>
+
+        {/* EXPAND */}
+        <td className="px-4 py-3 align-top text-right w-12">
+          {hasDetails ? (
+            <div
+              className={`inline-flex items-center justify-center h-7 w-7 rounded-md transition-all ${
+                expanded
+                  ? "bg-purple-500/20 text-purple-300 ring-1 ring-purple-500/30"
+                  : "text-gray-500 group-hover:bg-gray-700/50 group-hover:text-white"
+              }`}
             >
-              {expanded ? <MdExpandLess size={20} /> : <MdExpandMore size={20} />}
-            </button>
+              {expanded ? (
+                <MdExpandLess size={18} />
+              ) : (
+                <MdExpandMore size={18} />
+              )}
+            </div>
+          ) : (
+            <span className="text-gray-700">—</span>
           )}
-        </div>
+        </td>
+      </tr>
 
-        {/* Details */}
-        {expanded && hasDetails && <DetailsPanel details={log.details} action={log.action} />}
-      </div>
-    </div>
+      {/* Expanded Details Row */}
+      {expanded && hasDetails && (
+        <tr className={isLast ? "" : "border-b border-gray-700/30"}>
+          <td colSpan={6} className="px-4 pb-4 bg-gray-800/40">
+            <div
+              className="rounded-xl bg-gray-900/50 ring-1 ring-gray-700/40 px-4 py-3 border-l-2"
+              style={{ borderLeftColor: actionConfig.color }}
+            >
+              <DetailsPanel details={log.details} action={log.action} />
+            </div>
+          </td>
+        </tr>
+      )}
+    </>
   );
 }
 
@@ -252,22 +482,12 @@ function groupByDate(logs) {
   return groups;
 }
 
-function DateLabel({ dateStr }) {
-  const d = dayjs(dateStr);
+function getDateLabel(dateStr) {
   const today = dayjs().format("YYYY-MM-DD");
   const yesterday = dayjs().subtract(1, "day").format("YYYY-MM-DD");
-
-  let label = d.format("dddd, D MMMM YYYY");
-  if (dateStr === today) label = "Today";
-  else if (dateStr === yesterday) label = "Yesterday";
-
-  return (
-    <div className="flex items-center gap-3 mb-3 mt-6 first:mt-0">
-      <div className="h-px flex-1 bg-gray-700/50" />
-      <span className="text-xs font-semibold text-gray-400 uppercase tracking-wider whitespace-nowrap">{label}</span>
-      <div className="h-px flex-1 bg-gray-700/50" />
-    </div>
-  );
+  if (dateStr === today) return "Today";
+  if (dateStr === yesterday) return "Yesterday";
+  return dayjs(dateStr).format("dddd, D MMMM YYYY");
 }
 
 // --- Main Page ---
@@ -484,15 +704,15 @@ export default function ActivityLogPage() {
         </div>
       )}
 
-      {/* Timeline Content */}
-      <div className="bg-gray-800/30 rounded-xl border border-gray-700/40 p-6">
+      {/* Table Content */}
+      <div className="bg-gray-800/30 rounded-xl border border-gray-700/40 overflow-hidden">
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-12 gap-3">
+          <div className="flex flex-col items-center justify-center py-16 gap-3">
             <div className="w-10 h-10 border-3 border-purple-500 border-t-transparent rounded-full animate-spin" />
             <p className="text-sm text-gray-500">Loading activity...</p>
           </div>
         ) : error ? (
-          <div className="text-center py-12">
+          <div className="text-center py-16">
             <p className="text-red-400 mb-2">Failed to load activity logs</p>
             <p className="text-sm text-gray-500">{error}</p>
             <button
@@ -503,7 +723,7 @@ export default function ActivityLogPage() {
             </button>
           </div>
         ) : logs.length === 0 ? (
-          <div className="text-center py-16">
+          <div className="text-center py-20">
             <div className="w-16 h-16 mx-auto mb-4 bg-gray-700/30 rounded-full flex items-center justify-center">
               <Activity size={32} className="text-gray-600" />
             </div>
@@ -515,40 +735,85 @@ export default function ActivityLogPage() {
             </p>
           </div>
         ) : (
-          <>
-            {Object.entries(grouped).map(([dateStr, dateLogs]) => (
-              <div key={dateStr}>
-                <DateLabel dateStr={dateStr} />
-                <div className="space-y-0">
-                  {dateLogs.map((log) => (
-                    <LogEntry key={log.id} log={log} />
-                  ))}
-                </div>
-              </div>
-            ))}
-          </>
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead className="bg-gray-900/60 border-b border-gray-700/50 sticky top-0 z-10 backdrop-blur">
+                <tr className="text-left">
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    When
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    User
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500">
+                    Action
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold  uppercase tracking-widest text-gray-500">
+                    Entity
+                  </th>
+                  <th className="px-4 py-3 text-[10px] font-bold uppercase tracking-widest text-gray-500 text-right hidden md:table-cell">
+                    Timestamp
+                  </th>
+                  <th className="px-4 py-3 w-12"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {Object.entries(grouped).map(([dateStr, dateLogs], groupIdx, arr) => (
+                  <React.Fragment key={dateStr}>
+                    <tr className="bg-gray-900/40">
+                      <td
+                        colSpan={6}
+                        className="px-4 py-2 text-[11px] font-bold uppercase tracking-[0.15em] text-purple-300/80 border-y border-gray-700/30"
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="h-1 w-1 rounded-full bg-purple-400" />
+                          {getDateLabel(dateStr)}
+                          <span className="text-gray-600 font-normal">·</span>
+                          <span className="text-gray-500 font-medium normal-case tracking-normal">
+                            {dateLogs.length} {dateLogs.length === 1 ? "entry" : "entries"}
+                          </span>
+                        </div>
+                      </td>
+                    </tr>
+                    {dateLogs.map((log, idx) => (
+                      <LogRow
+                        key={log.id}
+                        log={log}
+                        isLast={
+                          idx === dateLogs.length - 1 &&
+                          groupIdx === arr.length - 1
+                        }
+                      />
+                    ))}
+                  </React.Fragment>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
 
         {/* Pagination */}
         {pagination.totalPages > 1 && (
-          <div className="mt-6 pt-4 border-t border-gray-700/40 flex items-center justify-between">
+          <div className="px-4 py-3 border-t border-gray-700/40 flex items-center justify-between bg-gray-900/30">
             <p className="text-sm text-gray-500">
-              Page {pagination.page} of {pagination.totalPages} · {pagination.total} entries
+              Page <span className="text-white font-semibold">{pagination.page}</span> of {pagination.totalPages}
+              <span className="text-gray-700 mx-2">·</span>
+              <span className="text-white font-semibold">{pagination.total}</span> total entries
             </p>
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setFilters((p) => ({ ...p, page: Math.max(1, p.page - 1) }))}
                 disabled={pagination.page <= 1}
-                className="p-2 rounded-lg bg-gray-700/50 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-gray-700/50 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                <MdChevronLeft size={20} />
+                <MdChevronLeft size={18} />
               </button>
               <button
                 onClick={() => setFilters((p) => ({ ...p, page: Math.min(pagination.totalPages, p.page + 1) }))}
                 disabled={pagination.page >= pagination.totalPages}
-                className="p-2 rounded-lg bg-gray-700/50 text-gray-400 hover:text-white disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
+                className="h-8 w-8 inline-flex items-center justify-center rounded-lg bg-gray-700/50 text-gray-400 hover:text-white hover:bg-gray-700 disabled:opacity-30 disabled:cursor-not-allowed transition-colors cursor-pointer"
               >
-                <MdChevronRight size={20} />
+                <MdChevronRight size={18} />
               </button>
             </div>
           </div>

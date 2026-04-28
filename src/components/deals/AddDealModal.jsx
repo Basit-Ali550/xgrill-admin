@@ -176,15 +176,15 @@ export default function AddDealModal({ isOpen, onClose, onAdd, deal }) {
           );
 
           return (
-            <Form className="flex flex-col h-[85vh] md:h-[800px]">
+            <Form className="flex flex-col flex-1 min-h-0">
               {/* TOP: Image Uploader Header */}
-              <div className="bg-gray-900 border-b border-gray-800 p-6 shrink-0">
+              <div className="bg-linear-to-b from-gray-900 to-gray-900/50 border-b border-gray-800 p-5 shrink-0">
                 <ImageUploader
                   value={values.image}
                   onChange={(url) => setFieldValue("image", url)}
                   folder="grill-x/deals"
                   placeholder="Upload Deal Cover Image (1200x600 recommended)"
-                  className="h-48 w-full object-cover rounded-xl border-2 border-dashed border-gray-700 hover:border-orange-500/50 transition-colors"
+                  className="h-44 w-full rounded-xl"
                 />
               </div>
 

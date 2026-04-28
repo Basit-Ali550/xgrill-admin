@@ -14,6 +14,7 @@ import {
   Receipt,
   Users,
   Plus,
+  Printer,
 } from "lucide-react";
 import { addItemAction } from "@/app/actions/orders"; // Will create this
 import toast from "react-hot-toast";
@@ -32,6 +33,7 @@ export default function OrderDetailModal({
   order,
   onStatusChange,
   onOrderSelect,
+  onPrintReceipt,
   allOrders = [],
   isChef = false,
   products = [],
@@ -366,13 +368,26 @@ export default function OrderDetailModal({
                 </div>
 
                 {/* Total Footer */}
-                <div className="px-5 py-4 bg-gray-900/80 border-t border-gray-700/50 flex justify-between items-center mt-auto">
-                  <span className="text-sm font-medium text-gray-400">
-                    Total Amount
-                  </span>
-                  <span className="text-2xl font-bold text-orange-500 drop-shadow-sm font-mono tracking-tight">
-                    {formatPrice(order.totalAmount)}
-                  </span>
+                <div className="px-5 py-4 bg-gray-900/80 border-t border-gray-700/50 flex justify-between items-center mt-auto gap-3">
+                  <div className="flex flex-col">
+                    <span className="text-[10px] uppercase tracking-wider text-gray-500 font-bold">
+                      Total Amount
+                    </span>
+                    <span className="text-2xl font-bold text-orange-500 drop-shadow-sm font-mono tracking-tight">
+                      {formatPrice(order.totalAmount)}
+                    </span>
+                  </div>
+                  {onPrintReceipt && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => onPrintReceipt(order)}
+                      className="border-gray-700 hover:bg-gray-800 hover:text-white text-gray-300 h-9"
+                    >
+                      <Printer size={15} className="mr-2" />
+                      Print Receipt
+                    </Button>
+                  )}
                 </div>
               </div>
 
