@@ -1,25 +1,20 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import Image from "next/image";
 import toast from "react-hot-toast";
 import {
   Check,
-  Layers,
   Loader2,
   MapPin,
   Minus,
-  Package,
   Phone,
   Plus,
   Search,
   ShoppingBag,
   ShoppingCart,
   Store,
-  Tag,
   Trash2,
   User,
-  Utensils,
   X,
 } from "lucide-react";
 import { getProductsAction } from "@/app/actions/products";
@@ -29,18 +24,11 @@ import { placeOrderAction } from "@/app/actions/orders";
 import OrderReceipt from "@/components/orders/OrderReceipt";
 
 const TYPE_OPTIONS = [
-  { key: "ALL", label: "Everything", helper: "Full menu", icon: Layers, color: "orange" },
-  { key: "PRODUCT", label: "Menu Items", helper: "Food & drinks", icon: Utensils, color: "amber" },
-  { key: "DEAL", label: "Deals", helper: "Offers", icon: Tag, color: "rose" },
-  { key: "INVENTORY", label: "Other Items", helper: "Direct sale", icon: Package, color: "emerald" },
+  { key: "ALL", label: "Everything" },
+  { key: "PRODUCT", label: "Menu Items" },
+  { key: "DEAL", label: "Deals" },
+  { key: "INVENTORY", label: "Other Items" },
 ];
-
-const COLOR_STYLES = {
-  orange: "border-orange-500 bg-orange-500 text-white shadow-orange-950/40",
-  amber: "border-amber-500 bg-amber-500 text-gray-950 shadow-amber-950/40",
-  rose: "border-rose-500 bg-rose-500 text-white shadow-rose-950/40",
-  emerald: "border-emerald-500 bg-emerald-500 text-gray-950 shadow-emerald-950/40",
-};
 
 function Money({ value, className = "" }) {
   const amount = Number(value || 0);
@@ -59,10 +47,10 @@ function Tile({ active, onClick, children, className = "", ariaLabel }) {
       onClick={onClick}
       aria-label={ariaLabel}
       aria-pressed={active}
-      className={`relative size-[150px] shrink-0 overflow-hidden rounded-2xl border text-left shadow-lg transition active:scale-95 ${
+      className={`relative size-[100px] shrink-0 overflow-hidden rounded-xl border text-center shadow-md transition active:scale-95 ${
         active
-          ? "border-orange-400 bg-orange-500 text-white shadow-orange-950/40 ring-2 ring-orange-300/35"
-          : "border-gray-700 bg-gray-800/90 text-gray-100 shadow-black/20 hover:border-orange-400/70 hover:bg-gray-800"
+          ? "border-blue-300 bg-blue-600 text-white shadow-blue-950/40 ring-2 ring-blue-300/30"
+          : "border-blue-800 bg-blue-950/50 text-blue-100 shadow-black/20 hover:border-blue-500 hover:bg-blue-900/60"
       } ${className}`}
     >
       {children}
@@ -79,7 +67,6 @@ export default function ManualOrderPage() {
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
 
-  const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState("ALL");
   const [activeCategory, setActiveCategory] = useState("ALL");
 
@@ -229,15 +216,10 @@ export default function ManualOrderPage() {
     if (filterType === "ALL" || filterType === "INVENTORY") items.push(...directSaleItems);
     if (filterType === "ALL" || filterType === "DEAL") items.push(...dealItems);
 
-    const query = searchQuery.trim().toLowerCase();
     return items.filter((item) => {
-      const matchesCategory = activeCategory === "ALL" || item.category === activeCategory;
-      const matchesSearch = !query || [item.name, item.size, item.category, item.brand]
-        .filter(Boolean)
-        .some((value) => String(value).toLowerCase().includes(query));
-      return matchesCategory && matchesSearch;
+      return activeCategory === "ALL" || item.category === activeCategory;
     });
-  }, [activeCategory, deals, filterType, inventoryProducts, products, searchQuery]);
+  }, [activeCategory, deals, filterType, inventoryProducts, products]);
 
   const cartCount = cart.reduce((total, item) => total + item.quantity, 0);
   const cartTotal = cart.reduce((total, item) => total + Number(item.price) * item.quantity, 0);
@@ -334,176 +316,111 @@ export default function ManualOrderPage() {
   };
 
   return (
-    <div className="flex min-h-[calc(100vh-7rem)] flex-col gap-4 xl:h-[calc(100vh-7rem)] xl:flex-row">
-      <section className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/35">
-        <div className="flex h-full min-h-0 flex-col">
-          <div className="border-b border-gray-800 bg-gray-900/80 p-4">
-            <div className="flex flex-wrap items-center gap-3">
-              <div className="relative min-w-[260px] flex-1">
-                <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-orange-400" size={22} />
-                <input
-                  value={searchQuery}
-                  onChange={(event) => setSearchQuery(event.target.value)}
-                  placeholder="Search product, size or category..."
-                  className="h-14 w-full rounded-xl border border-gray-700 bg-gray-950 pl-12 pr-12 text-base font-medium text-white outline-none placeholder:text-gray-500 focus:border-orange-500 focus:ring-2 focus:ring-orange-500/20"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    onClick={() => setSearchQuery("")}
-                    className="absolute right-2 top-1/2 flex size-10 -translate-y-1/2 items-center justify-center rounded-lg text-gray-400 hover:bg-gray-800 hover:text-white"
-                    aria-label="Clear search"
-                  >
-                    <X size={20} />
-                  </button>
-                )}
+    <div className="flex min-h-full flex-col gap-3 xl:h-full xl:min-h-0 xl:flex-row">
+      <section className="min-h-[500px] min-w-0 flex-1 overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/35 xl:min-h-0">
+        <div className="h-full min-h-0 overflow-y-auto p-3">
+          <div className="mb-4">
+            <div className="mb-2 flex items-end justify-between">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400">Filters</p>
+                <h2 className="text-base font-black text-white">Item type</h2>
               </div>
-              <div className="rounded-xl border border-gray-700 bg-gray-800 px-4 py-2 text-right">
-                <p className="text-xs font-bold uppercase tracking-wider text-gray-500">Showing</p>
-                <p className="text-lg font-black text-white">{filteredItems.length} items</p>
-              </div>
+              <p className="text-xs font-bold text-gray-500">{filteredItems.length} items</p>
+            </div>
+            <div className="flex gap-2 overflow-x-auto pb-2">
+              {TYPE_OPTIONS.map((option) => (
+                <Tile
+                  key={option.key}
+                  active={filterType === option.key}
+                  onClick={() => chooseType(option.key)}
+                  ariaLabel={`Show ${option.label}`}
+                >
+                  <div className="flex h-full items-center justify-center p-2">
+                    <span className="line-clamp-3 text-sm font-black leading-tight">{option.label}</span>
+                    {filterType === option.key && <Check className="absolute right-1.5 top-1.5" size={15} />}
+                  </div>
+                </Tile>
+              ))}
             </div>
           </div>
 
-          <div className="min-h-0 flex-1 overflow-y-auto p-4">
-            <div className="mb-6">
-              <div className="mb-3 flex items-center justify-between">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">Step 1</p>
-                  <h2 className="text-lg font-black text-white">Choose item type</h2>
-                </div>
-                <p className="hidden text-sm text-gray-500 sm:block">Large buttons for quick selection</p>
+          {filterType !== "DEAL" && categories.length > 1 && (
+            <div className="mb-4">
+              <div className="mb-2">
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400">Filters</p>
+                <h2 className="text-base font-black text-white">Category</h2>
               </div>
-              <div className="flex gap-3 overflow-x-auto pb-2">
-                {TYPE_OPTIONS.map((option) => {
-                  const Icon = option.icon;
-                  const active = filterType === option.key;
+              <div className="flex gap-2 overflow-x-auto pb-2">
+                {categories.map((category) => (
+                  <Tile
+                    key={category}
+                    active={activeCategory === category}
+                    onClick={() => setActiveCategory(category)}
+                    ariaLabel={`Filter by ${category}`}
+                  >
+                    <div className="flex h-full items-center justify-center p-2">
+                      <span className="line-clamp-3 text-sm font-black leading-tight">
+                        {category === "ALL" ? "All Categories" : category}
+                      </span>
+                      {activeCategory === category && <Check className="absolute right-1.5 top-1.5" size={15} />}
+                    </div>
+                  </Tile>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div>
+            <div className="mb-2 flex items-end justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400">Products</p>
+                <h2 className="text-base font-black text-white">Tap to add</h2>
+              </div>
+              {cartCount > 0 && <p className="text-xs font-bold text-emerald-400">{cartCount} selected</p>}
+            </div>
+
+            {isLoading ? (
+              <div className="flex h-52 items-center justify-center">
+                <Loader2 className="animate-spin text-orange-500" size={42} />
+              </div>
+            ) : filteredItems.length === 0 ? (
+              <div className="flex h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-700 text-center">
+                <p className="font-bold text-gray-300">No items found</p>
+                <button type="button" onClick={() => chooseType("ALL")} className="mt-2 text-sm font-bold text-orange-400 hover:text-orange-300">
+                  Clear all filters
+                </button>
+              </div>
+            ) : (
+              <div className="grid grid-cols-[repeat(auto-fill,100px)] gap-2">
+                {filteredItems.map((item) => {
+                  const cartQuantity = findCartLine(item)?.quantity || 0;
                   return (
-                    <Tile
-                      key={option.key}
-                      active={active}
-                      onClick={() => chooseType(option.key)}
-                      ariaLabel={`Show ${option.label}`}
-                      className={active ? COLOR_STYLES[option.color] : ""}
+                    <button
+                      key={`${item.type}-${item.id}`}
+                      type="button"
+                      onClick={() => addToCart(item)}
+                      className={`relative size-[100px] overflow-hidden rounded-xl border p-2 text-left shadow-md transition active:scale-95 ${
+                        cartQuantity
+                          ? "border-emerald-300 bg-emerald-600 text-white ring-2 ring-emerald-300/30"
+                          : "border-orange-500/60 bg-gray-800 text-white hover:border-orange-300 hover:bg-gray-700"
+                      }`}
                     >
-                      <div className="flex h-full flex-col justify-between p-4">
-                        <span className={`flex size-12 items-center justify-center rounded-xl ${active ? "bg-black/15" : "bg-gray-950 text-orange-400"}`}>
-                          <Icon size={27} />
-                        </span>
-                        <span>
-                          <span className="block text-lg font-black leading-tight">{option.label}</span>
-                          <span className={`mt-1 block text-xs font-medium ${active ? "opacity-75" : "text-gray-500"}`}>{option.helper}</span>
-                        </span>
-                        {active && <Check className="absolute right-3 top-3" size={20} />}
+                      <div className="flex h-full flex-col justify-between">
+                        <p className="line-clamp-3 pr-4 text-xs font-black leading-tight">
+                          {item.name}{item.size ? ` · ${item.size}` : ""}
+                        </p>
+                        <Money value={item.price} className={`text-sm font-black ${cartQuantity ? "text-white" : "text-orange-400"}`} />
                       </div>
-                    </Tile>
+                      {cartQuantity > 0 && (
+                        <span className="absolute right-1.5 top-1.5 flex min-w-6 items-center justify-center rounded-full bg-white px-1.5 py-0.5 text-[10px] font-black text-emerald-700 shadow">
+                          ×{cartQuantity}
+                        </span>
+                      )}
+                    </button>
                   );
                 })}
               </div>
-            </div>
-
-            {filterType !== "DEAL" && categories.length > 1 && (
-              <div className="mb-6">
-                <div className="mb-3">
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">Step 2</p>
-                  <h2 className="text-lg font-black text-white">Choose category</h2>
-                </div>
-                <div className="flex gap-3 overflow-x-auto pb-2">
-                  {categories.map((category) => {
-                    const active = activeCategory === category;
-                    return (
-                      <Tile
-                        key={category}
-                        active={active}
-                        onClick={() => setActiveCategory(category)}
-                        ariaLabel={`Filter by ${category}`}
-                      >
-                        <div className="flex h-full flex-col justify-between p-4">
-                          <span className={`flex size-12 items-center justify-center rounded-xl text-xl font-black ${active ? "bg-white/15" : "bg-gray-950 text-orange-400"}`}>
-                            {category === "ALL" ? <Layers size={25} /> : category.charAt(0).toUpperCase()}
-                          </span>
-                          <span className="line-clamp-2 text-lg font-black leading-tight">
-                            {category === "ALL" ? "All Categories" : category}
-                          </span>
-                          {active && <Check className="absolute right-3 top-3" size={20} />}
-                        </div>
-                      </Tile>
-                    );
-                  })}
-                </div>
-              </div>
             )}
-
-            <div>
-              <div className="mb-3 flex items-end justify-between gap-3">
-                <div>
-                  <p className="text-xs font-bold uppercase tracking-[0.18em] text-orange-400">
-                    {filterType === "DEAL" ? "Step 2" : "Step 3"}
-                  </p>
-                  <h2 className="text-lg font-black text-white">Tap product to add</h2>
-                </div>
-                {cartCount > 0 && <p className="text-sm font-bold text-emerald-400">{cartCount} selected</p>}
-              </div>
-
-              {isLoading ? (
-                <div className="flex h-52 items-center justify-center">
-                  <Loader2 className="animate-spin text-orange-500" size={42} />
-                </div>
-              ) : filteredItems.length === 0 ? (
-                <div className="flex h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-700 text-center">
-                  <Search className="mb-3 text-gray-600" size={38} />
-                  <p className="font-bold text-gray-300">No items found</p>
-                  <button type="button" onClick={() => { setSearchQuery(""); chooseType("ALL"); }} className="mt-2 text-sm font-bold text-orange-400 hover:text-orange-300">
-                    Clear all filters
-                  </button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-[repeat(auto-fill,150px)] gap-3">
-                  {filteredItems.map((item) => {
-                    const cartQuantity = findCartLine(item)?.quantity || 0;
-                    return (
-                      <button
-                        key={`${item.type}-${item.id}`}
-                        type="button"
-                        onClick={() => addToCart(item)}
-                        className={`group relative size-[150px] overflow-hidden rounded-2xl border text-left shadow-lg transition active:scale-95 ${
-                          cartQuantity
-                            ? "border-orange-400 bg-orange-950/50 ring-2 ring-orange-500/30"
-                            : "border-gray-700 bg-gray-800 hover:border-orange-400/70"
-                        }`}
-                      >
-                        <div className="relative h-[72px] overflow-hidden bg-gray-950">
-                          {item.image ? (
-                            <Image src={item.image} alt={item.name} fill sizes="150px" className="object-cover transition group-hover:scale-105" />
-                          ) : (
-                            <div className="flex h-full items-center justify-center text-gray-600">
-                              {item.type === "deal" ? <Tag size={30} /> : item.type === "inventory" ? <Package size={30} /> : <Utensils size={30} />}
-                            </div>
-                          )}
-                          <span className="absolute bottom-1.5 left-1.5 rounded-md bg-black/75 px-2 py-1 text-[10px] font-bold uppercase text-white backdrop-blur">
-                            {item.type === "deal" ? "Deal" : item.category || "Item"}
-                          </span>
-                        </div>
-                        <div className="flex h-[78px] flex-col justify-between p-2.5">
-                          <p className="line-clamp-2 text-sm font-black leading-tight text-white">
-                            {item.name}{item.size ? ` · ${item.size}` : ""}
-                          </p>
-                          <Money value={item.price} className="text-base font-black text-orange-400" />
-                        </div>
-                        {cartQuantity > 0 && (
-                          <span className="absolute right-2 top-2 flex min-w-8 items-center justify-center rounded-full bg-orange-500 px-2 py-1 text-sm font-black text-white shadow-lg">
-                            ×{cartQuantity}
-                          </span>
-                        )}
-                        <span className="absolute bottom-2 right-2 flex size-8 items-center justify-center rounded-full bg-orange-500 text-white shadow-lg">
-                          <Plus size={18} strokeWidth={3} />
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
           </div>
         </div>
       </section>

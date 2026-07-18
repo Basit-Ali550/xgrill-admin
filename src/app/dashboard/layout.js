@@ -57,6 +57,7 @@ export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [isMobile, setIsMobile] = useState(false);
+  const isManualOrder = pathname === "/dashboard/orders/manual";
 
   // Detect mobile
   useEffect(() => {
@@ -130,8 +131,9 @@ export default function DashboardLayout({ children }) {
 
   if (!isAuthenticated) return null;
 
-  const showLabels = isMobile ? true : !isCollapsed;
-  const sidebarWidth = isMobile ? 280 : isCollapsed ? 80 : 256;
+  const sidebarCollapsed = isManualOrder || isCollapsed;
+  const showLabels = isMobile ? true : !sidebarCollapsed;
+  const sidebarWidth = isMobile ? 280 : sidebarCollapsed ? 80 : 256;
 
   return (
     <PageTitleContext.Provider value={{ title: pageTitle, setTitle: () => {} }}>
@@ -220,7 +222,7 @@ export default function DashboardLayout({ children }) {
         </aside>
 
         {/* Collapse Toggle Tab (attached to sidebar's right edge, always visible) */}
-        {!isMobile && (
+        {!isMobile && !isManualOrder && (
           <button
             onClick={() => setIsCollapsed(!isCollapsed)}
             style={{ left: sidebarWidth - 1 }}
@@ -235,10 +237,10 @@ export default function DashboardLayout({ children }) {
         {/* Main Area */}
         <div className="flex-1 flex flex-col h-screen overflow-hidden">
           {/* Header - Fixed at top */}
-          <Header title={pageTitle} toggleSidebar={toggleSidebar} />
+          {!isManualOrder && <Header title={pageTitle} toggleSidebar={toggleSidebar} />}
 
           {/* Page Content - Scrollable */}
-          <main className="flex-1 overflow-y-auto p-6">
+          <main className={`flex-1 min-h-0 ${isManualOrder ? "overflow-y-auto p-2 xl:overflow-hidden" : "overflow-y-auto p-6"}`}>
             {children}
           </main>
         </div>
