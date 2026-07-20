@@ -318,8 +318,8 @@ export default function ManualOrderPage() {
   return (
     <div className="flex min-h-full flex-col gap-3 xl:h-full xl:min-h-0 xl:flex-row">
       <section className="min-h-[500px] min-w-0 flex-1 overflow-hidden rounded-2xl border border-gray-800 bg-gray-950/35 xl:min-h-0">
-        <div className="h-full min-h-0 overflow-y-auto p-3">
-          <div className="mb-4">
+        <div className="flex h-full min-h-0 flex-col p-3">
+          <div className="mb-3 shrink-0">
             <div className="mb-2 flex items-end justify-between">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400">Filters</p>
@@ -345,7 +345,7 @@ export default function ManualOrderPage() {
           </div>
 
           {filterType !== "DEAL" && categories.length > 1 && (
-            <div className="mb-4">
+            <div className="mb-3 shrink-0">
               <div className="mb-2">
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-blue-400">Filters</p>
                 <h2 className="text-base font-black text-white">Category</h2>
@@ -370,8 +370,8 @@ export default function ManualOrderPage() {
             </div>
           )}
 
-          <div>
-            <div className="mb-2 flex items-end justify-between gap-3">
+          <div className="flex min-h-[180px] flex-1 flex-col border-t border-gray-800 pt-3">
+            <div className="mb-2 flex shrink-0 items-end justify-between gap-3">
               <div>
                 <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-orange-400">Products</p>
                 <h2 className="text-base font-black text-white">Tap to add</h2>
@@ -380,18 +380,18 @@ export default function ManualOrderPage() {
             </div>
 
             {isLoading ? (
-              <div className="flex h-52 items-center justify-center">
+              <div className="flex min-h-0 flex-1 items-center justify-center">
                 <Loader2 className="animate-spin text-orange-500" size={42} />
               </div>
             ) : filteredItems.length === 0 ? (
-              <div className="flex h-52 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-700 text-center">
+              <div className="flex min-h-0 flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-gray-700 text-center">
                 <p className="font-bold text-gray-300">No items found</p>
                 <button type="button" onClick={() => chooseType("ALL")} className="mt-2 text-sm font-bold text-orange-400 hover:text-orange-300">
                   Clear all filters
                 </button>
               </div>
             ) : (
-              <div className="grid grid-cols-[repeat(auto-fill,100px)] gap-2">
+              <div className="grid min-h-0 flex-1 grid-cols-[repeat(auto-fill,100px)] content-start gap-2 overflow-y-auto pb-2 pr-1">
                 {filteredItems.map((item) => {
                   const cartQuantity = findCartLine(item)?.quantity || 0;
                   return (
